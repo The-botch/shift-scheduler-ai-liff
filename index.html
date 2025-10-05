@@ -55,28 +55,27 @@
             shiftDate: formData.get("shiftDate"),
             startTime: formData.get("startTime"),
             endTime: formData.get("endTime"),
-            idToken: idToken // 誰が送ったか識別用に追加
+            idToken: idToken
           };
 
           try {
-            // APIに送信
+            // ←★ 修正版：レスポンスのエラーメッセージを詳細に出す
             const response = await fetch("https://shift-scheduler-api.vercel.app/api/shift", {
               method: "POST",
-              headers: {
-                "Content-Type": "application/json"
-              },
+              headers: { "Content-Type": "application/json" },
               body: JSON.stringify(data)
             });
 
-            const result = await response.json();
+            if (!response.ok) {
+              const text = await response.text();
+              throw new Error(`HTTP ${response.status}: ${text}`);
+            }
 
-            // 結果を画面に表示
-            document.getElementById("output").textContent =
-              "✅ サーバー応答:\n" + JSON.stringify(result, null, 2);
+            const result = await response.json();
+            alert("✅ 成功: " + JSON.stringify(result, null, 2));
 
           } catch (err) {
-            document.getElementById("output").textContent =
-              "❌ エラー:\n" + err.message;
+            alert("❌ エラー: " + err.message); // ←★ 修正版
           }
         });
       }
@@ -85,7 +84,6 @@
 
   main();
 </script>
-
 
 </body>
 </html>

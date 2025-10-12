@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8">
-  <title>LIFF Demo</title>
+  <title>LIFF Demo - シフト入力</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <!-- LIFF SDK -->
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
@@ -52,15 +52,16 @@
 
           const formData = new FormData(form);
           const data = {
-            shiftDate: formData.get("shiftDate"),
-            startTime: formData.get("startTime"),
-            endTime: formData.get("endTime"),
-            idToken: idToken
+            // Railway側のモデルに合わせてキー名を変更
+            user_name: profile.displayName,  // LINE名をそのまま使う
+            shift_date: formData.get("shiftDate"),
+            start_time: formData.get("startTime"),
+            end_time: formData.get("endTime"),
           };
 
           try {
-            // ←★ 修正版：レスポンスのエラーメッセージを詳細に出す
-            const response = await fetch("https://shift-scheduler-api.vercel.app/api/shift", {
+            // ✅ Railwayのエンドポイントに変更
+            const response = await fetch("https://shift-scheduler-django-production.up.railway.app/api/submit_shift/", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify(data)
@@ -72,10 +73,10 @@
             }
 
             const result = await response.json();
-            alert("✅ 成功: " + JSON.stringify(result, null, 2));
+            alert("✅ 登録成功！ ID: " + result.id);
 
           } catch (err) {
-            alert("❌ エラー: " + err.message); // ←★ 修正版
+            alert("❌ エラー: " + err.message);
           }
         });
       }

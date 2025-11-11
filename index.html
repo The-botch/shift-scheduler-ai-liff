@@ -64,16 +64,34 @@
       <div id="profileBox" class="helper" style="margin-top:6px">LINEログイン前です</div>
     </div>
 
-    <!-- 役割選択 -->
+    <!-- スタッフ選択 -->
     <div class="card" style="margin-bottom:12px">
-      <div class="section-title">入力者</div>
-      <div class="row" id="roleRow">
-        <div class="pill active-pt" data-role="part">アルバイト</div>
-        <div class="pill" data-role="emp">社員</div>
+      <div class="section-title">スタッフ情報</div>
+
+      <div style="margin-bottom:10px">
+        <label class="helper" style="display:block;margin-bottom:4px">🏪 店舗フィルター</label>
+        <select id="storeSelect" class="select">
+          <option value="">全店舗</option>
+        </select>
       </div>
-      <div class="helper" style="margin-top:8px">
-        ・アルバイト：出勤できる日を<strong class="green">緑</strong>で選択し、パターン or 時刻を指定<br/>
-        ・社員：休みたい日を<strong style="color:#b91c1c">赤</strong>で選択（※この段階では送信は準備中）
+
+      <div style="margin-bottom:10px">
+        <label class="helper" style="display:block;margin-bottom:4px">👤 スタッフ選択</label>
+        <select id="staffSelect" class="select">
+          <option value="">選択してください</option>
+        </select>
+      </div>
+
+      <div id="staffInfo" class="helper" style="display:none;margin-top:6px;padding:8px;background:var(--green-weak);border-radius:8px">
+        <!-- スタッフ情報を表示 -->
+      </div>
+    </div>
+
+    <!-- 役割選択（自動判定に変更） -->
+    <div class="card" style="margin-bottom:12px">
+      <div class="section-title">入力タイプ</div>
+      <div id="roleInfo" class="helper" style="padding:8px;background:var(--gray);border-radius:8px">
+        スタッフを選択すると、雇用形態に応じて自動設定されます
       </div>
     </div>
 
@@ -137,8 +155,8 @@
 <script>
   // ====== 設定（あなたの値に変更） ======
   const LIFF_ID  = "2008227932-Rq9rJrJn";            // ← あなたの LIFF ID
-  const API_BASE = "https://shift-scheduler-ai-production.up.railway.app/api/submit_shift/"; // ← Railwayのドメイン
-  const API_SHIFT = `${API_BASE}/api/submit_shift/`;  // 既存Djangoのシフト登録エンドポイント
+  const API_BASE = "https://shift-scheduler-ai-production.up.railway.app"; // ← Railway本番環境
+  const TENANT_ID = 1; // テナントID
 
   // パターン → 時刻（必要に応じて後で編集可能）
   const PATTERNS = [
@@ -148,11 +166,178 @@
   ];
 
   // ====== 状態 ======
+  let staffList = []; // スタッフリスト
+  let storeList = []; // 店舗リスト
+  let selectedStaff = null; // 選択中のスタッフ
   let role = "part"; // "part"=アルバイト, "emp"=社員
   let mode = "pattern"; // "pattern" or "time"
   let cur = new Date(); cur.setDate(1); // 月の先頭
   let selected = new Map(); // key=YYYY-MM-DD, val={type:'part'|'emp', start,end,label}
   let currentPattern = PATTERNS[0];
+  let existingPreferenceId = null; // 既存のシフト希望ID
+
+  // ====== スタッフと店舗データ読み込み ======
+  async function loadStaffAndStores() {
+    try {
+      const [staffRes, storeRes] = await Promise.all([
+        fetch(`${API_BASE}/api/master/staff?tenant_id=${TENANT_ID}`),
+        fetch(`${API_BASE}/api/master/stores?tenant_id=${TENANT_ID}`)
+      ]);
+
+      const staffData = await staffRes.json();
+      const storeData = await storeRes.json();
+
+      if (staffData.success) {
+        staffList = staffData.data.filter(s => s.is_active);
+        populateStaffSelect();
+      }
+
+      if (storeData.success) {
+        storeList = storeData.data;
+        populateStoreSelect();
+      }
+    } catch (error) {
+      console.error('データ読み込みエラー:', error);
+      alert('スタッフ・店舗データの読み込みに失敗しました');
+    }
+  }
+
+  // ====== 店舗セレクトボックス生成 ======
+  function populateStoreSelect() {
+    const select = document.getElementById('storeSelect');
+    storeList.forEach(store => {
+      const option = document.createElement('option');
+      option.value = store.store_id;
+      option.textContent = store.store_name;
+      select.appendChild(option);
+    });
+  }
+
+  // ====== スタッフセレクトボックス生成 ======
+  function populateStaffSelect(storeId = null) {
+    const select = document.getElementById('staffSelect');
+    select.innerHTML = '<option value="">選択してください</option>';
+
+    const filteredStaff = storeId
+      ? staffList.filter(s => s.store_id == storeId)
+      : staffList;
+
+    filteredStaff.forEach(staff => {
+      const option = document.createElement('option');
+      option.value = staff.staff_id;
+      option.dataset.staff = JSON.stringify(staff);
+      option.textContent = `${staff.name} (${staff.staff_code}) - ${staff.store_name}`;
+      select.appendChild(option);
+    });
+
+    // 最初のスタッフを自動選択
+    if (filteredStaff.length > 0) {
+      select.value = filteredStaff[0].staff_id;
+      handleStaffChange();
+    }
+  }
+
+  // ====== スタッフ選択時の処理 ======
+  async function handleStaffChange() {
+    const select = document.getElementById('staffSelect');
+    const staffId = parseInt(select.value);
+
+    if (!staffId) {
+      selectedStaff = null;
+      document.getElementById('staffInfo').style.display = 'none';
+      document.getElementById('roleInfo').innerHTML = 'スタッフを選択すると、雇用形態に応じて自動設定されます';
+      return;
+    }
+
+    const selectedOption = select.options[select.selectedIndex];
+    selectedStaff = JSON.parse(selectedOption.dataset.staff);
+
+    // 雇用形態により役割を自動設定
+    const employmentType = selectedStaff.employment_type;
+    role = (employmentType === 'PART_TIME' || employmentType === 'PART') ? 'part' : 'emp';
+
+    // スタッフ情報表示
+    const staffInfo = document.getElementById('staffInfo');
+    staffInfo.style.display = 'block';
+    staffInfo.innerHTML = `
+      <strong>選択中:</strong> ${selectedStaff.name} さん<br>
+      <strong>雇用形態:</strong> ${selectedStaff.employment_type}
+    `;
+
+    // 入力タイプ情報表示
+    const roleInfo = document.getElementById('roleInfo');
+    if (role === 'part') {
+      roleInfo.style.background = 'var(--green-weak)';
+      roleInfo.innerHTML = `
+        <strong style="color:var(--green-strong)">✅ アルバイト</strong><br>
+        出勤できる日を<strong class="green">緑</strong>で選択し、パターン or 時刻を指定してください
+      `;
+    } else {
+      roleInfo.style.background = 'var(--red-weak)';
+      roleInfo.innerHTML = `
+        <strong style="color:#b91c1c">🚫 社員</strong><br>
+        休みたい日を<strong style="color:#b91c1c">赤</strong>で選択してください
+      `;
+    }
+
+    // 既存のシフト希望を読み込み
+    selected.clear();
+    await loadExistingPreferences();
+    renderCal();
+    refreshTips();
+  }
+
+  // ====== 既存シフト希望読み込み ======
+  async function loadExistingPreferences() {
+    if (!selectedStaff) return;
+
+    try {
+      const year = cur.getFullYear();
+      const month = cur.getMonth() + 1;
+      const url = `${API_BASE}/api/shifts/preferences?tenant_id=${TENANT_ID}&staff_id=${selectedStaff.staff_id}&year=${year}&month=${month}`;
+      const res = await fetch(url);
+      const data = await res.json();
+
+      if (data.success && data.data && data.data.length > 0) {
+        const pref = data.data[0];
+        existingPreferenceId = pref.preference_id;
+
+        // 日付を復元
+        const dateStr = role === 'part' ? pref.preferred_days : pref.ng_days;
+        if (dateStr) {
+          dateStr.split(',').forEach(d => {
+            const day = parseInt(d.trim().split('-')[2]);
+            if (day >= 1 && day <= 31) {
+              // 仮のパターンで登録（実際のパターンはAPIに保存されていないため）
+              selected.set(ymd(new Date(year, month - 1, day)), {
+                type: role,
+                start: PATTERNS[0].start,
+                end: PATTERNS[0].end,
+                label: role === 'part' ? PATTERNS[0].key : '休み'
+              });
+            }
+          });
+        }
+
+        document.getElementById('resultBox').style.display = 'block';
+        document.getElementById('resultBox').textContent = '既存のシフト希望が読み込まれました（更新モード）';
+      } else {
+        existingPreferenceId = null;
+        document.getElementById('resultBox').style.display = 'none';
+      }
+    } catch (error) {
+      console.error('シフト希望読み込みエラー:', error);
+    }
+  }
+
+  // ====== 店舗フィルター変更 ======
+  document.getElementById('storeSelect').addEventListener('change', (e) => {
+    const storeId = e.target.value || null;
+    populateStaffSelect(storeId);
+  });
+
+  // ====== スタッフ選択変更 ======
+  document.getElementById('staffSelect').addEventListener('change', handleStaffChange);
 
   // ====== LIFF ======
   async function initLIFF(){
@@ -160,6 +345,8 @@
     if(!liff.isLoggedIn()){
       document.getElementById("profileBox").innerHTML =
         `LINEログインが必要です。<button class="btn btn-primary" onclick="liff.login()">ログイン</button>`;
+      // ログインしていなくてもスタッフ選択は可能
+      await loadStaffAndStores();
       return;
     }
     const p = await liff.getProfile();
@@ -167,22 +354,24 @@
     window._login = {name:p.displayName, userId:p.userId, idToken:idt};
     document.getElementById("profileBox").textContent =
       `${p.displayName} さんとしてログイン中`;
+
+    // スタッフと店舗データを読み込み
+    await loadStaffAndStores();
   }
 
-  // ====== 役割切替 ======
-  document.getElementById("roleRow").addEventListener("click",(e)=>{
-    const pill = e.target.closest(".pill"); if(!pill) return;
-    role = pill.dataset.role; // part / emp
-    for(const el of document.querySelectorAll("#roleRow .pill")){
-      el.classList.remove("active-pt","active-em");
-    }
-    pill.classList.add(role==="part"?"active-pt":"active-em");
-    refreshTips();
-  });
-
   // ====== 月移動 ======
-  document.getElementById("prevMonth").onclick = ()=>{ cur.setMonth(cur.getMonth()-1); renderCal(); };
-  document.getElementById("nextMonth").onclick = ()=>{ cur.setMonth(cur.getMonth()+1); renderCal(); };
+  document.getElementById("prevMonth").onclick = async ()=>{
+    cur.setMonth(cur.getMonth()-1);
+    selected.clear();
+    await loadExistingPreferences();
+    renderCal();
+  };
+  document.getElementById("nextMonth").onclick = async ()=>{
+    cur.setMonth(cur.getMonth()+1);
+    selected.clear();
+    await loadExistingPreferences();
+    renderCal();
+  };
 
   // ====== 入力モード切替 ======
   const modeSelect = document.getElementById("modeSelect");
@@ -312,11 +501,18 @@
   function refreshTips(){
     const tip = document.getElementById("tipBox");
     const block = document.getElementById("blockBox");
-    if(role==="emp"){
-      tip.innerHTML = "赤い日が「休み希望」です。<br>※ 社員の休み希望は <strong>Step 3</strong> でAPI実装後に送信できます。今回はUIで選択まで。";
-      block.style.display = "block";
-      block.textContent = "社員（休み希望）の送信はまだ無効です。";
+
+    if (!selectedStaff) {
+      tip.innerHTML = "スタッフを選択してください";
+      block.style.display = "none";
       document.getElementById("submitBtn").disabled = true;
+      return;
+    }
+
+    if(role==="emp"){
+      tip.innerHTML = "赤い日が「休み希望」です。選択した日が休み希望として登録されます。";
+      block.style.display = "none";
+      document.getElementById("submitBtn").disabled = false;
     }else{
       tip.innerHTML = "緑の選択が「出勤可能日」です。新しくタップする日は、上のパターン／時刻の設定で登録されます。";
       block.style.display = "none";
@@ -332,48 +528,81 @@
     document.getElementById("countLabel").textContent = c;
   }
 
-  // ====== 送信（Step 2 ではアルバイトのみ実送信） ======
+  // ====== 送信処理（新APIエンドポイント対応） ======
   document.getElementById("submitBtn").onclick = async ()=>{
-    if(!window._login){ alert("LINEログインが必要です"); return; }
-    if(role==="emp"){
-      alert("社員（休み希望）は次のステップで対応します。いまはUIのみ。");
+    if (!selectedStaff) {
+      alert("スタッフを選択してください");
       return;
     }
-    const entries = [];
-    for(const [day,val] of selected.entries()){
-      if(val.type!=="part") continue;
-      entries.push({date:day, start:val.start, end:val.end});
-    }
-    if(entries.length===0){ alert("選択がありません"); return; }
 
-    // 1件ずつ既存APIにPOST（必要があれば後で一括APIに変更）
-    const name = window._login?.name || "Unknown";
-    let ok=0, ng=0, lastErr=null;
-
-    for(const e of entries){
-      try{
-        const body = {
-          user_name: name,
-          shift_date: e.date,
-          start_time: e.start + ":00",
-          end_time:   e.end   + ":00",
-        };
-        const resp = await fetch(API_SHIFT, {
-          method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(body)
-        });
-        if(!resp.ok){ ng++; lastErr = await resp.text(); }
-        else ok++;
-      }catch(err){ ng++; lastErr = err?.message || String(err); }
+    if (selected.size === 0) {
+      alert("選択がありません");
+      return;
     }
 
-    const box = document.getElementById("resultBox");
-    box.style.display="block";
-    if(ng===0){
-      box.textContent = `✅ 送信に成功しました：${ok}件`;
-      // 成功したら選択解除（好みで）
-      selected.clear(); renderCal();
-    }else{
-      box.textContent = `一部失敗：成功 ${ok} / 失敗 ${ng}（最後のエラー：${lastErr}）`;
+    if (!confirm(`${selected.size}日分のシフト希望を送信しますか？`)) {
+      return;
+    }
+
+    try {
+      // 選択された日付を配列化
+      const year = cur.getFullYear();
+      const month = cur.getMonth() + 1;
+      const dateArray = Array.from(selected.keys())
+        .map(key => {
+          const date = new Date(key);
+          const d = String(date.getDate()).padStart(2, '0');
+          const m = String(date.getMonth() + 1).padStart(2, '0');
+          const y = date.getFullYear();
+          return `${y}-${m}-${d}`;
+        })
+        .join(',');
+
+      // リクエストボディ作成
+      const requestBody = {
+        tenant_id: TENANT_ID,
+        store_id: selectedStaff.store_id,
+        staff_id: selectedStaff.staff_id,
+        year: year,
+        month: month,
+        preferred_days: role === 'part' ? dateArray : '',
+        ng_days: role === 'emp' ? dateArray : '',
+        notes: '',
+        status: 'PENDING'
+      };
+
+      // 更新 or 新規作成
+      const isUpdate = !!existingPreferenceId;
+      const url = isUpdate
+        ? `${API_BASE}/api/shifts/preferences/${existingPreferenceId}?tenant_id=${TENANT_ID}`
+        : `${API_BASE}/api/shifts/preferences`;
+
+      const response = await fetch(url, {
+        method: isUpdate ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody)
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        const box = document.getElementById("resultBox");
+        box.style.display = "block";
+        box.textContent = `✅ ${isUpdate ? '更新' : '送信'}に成功しました！`;
+        box.className = "success";
+
+        // 成功後、既存のpreference_idを保存（次回は更新になる）
+        if (!isUpdate && result.data?.preference_id) {
+          existingPreferenceId = result.data.preference_id;
+        }
+      } else {
+        throw new Error(result.error || '送信に失敗しました');
+      }
+    } catch (error) {
+      const box = document.getElementById("resultBox");
+      box.style.display = "block";
+      box.textContent = `❌ エラー: ${error.message}`;
+      box.className = "danger";
     }
   };
 
@@ -382,6 +611,7 @@
     await initLIFF();
     renderPatterns();
     renderCal();
+    refreshTips();
   })();
 </script>
 </body>

@@ -345,8 +345,6 @@
     if(!liff.isLoggedIn()){
       document.getElementById("profileBox").innerHTML =
         `LINEログインが必要です。<button class="btn btn-primary" onclick="liff.login()">ログイン</button>`;
-      // ログインしていなくてもスタッフ選択は可能
-      await loadStaffAndStores();
       return;
     }
     const p = await liff.getProfile();
@@ -355,8 +353,230 @@
     document.getElementById("profileBox").textContent =
       `${p.displayName} さんとしてログイン中`;
 
-    // スタッフと店舗データを読み込み
-    await loadStaffAndStores();
+    // LINE連携状態をチェック
+    await checkLineLink();
+  }
+
+  // ====== LINE連携チェック ======
+  async function checkLineLink() {
+    try {
+      const res = await fetch(`${API_BASE}/api/liff/check-link`, {
+        headers: {
+          'Authorization': `Bearer ${window._login.idToken}`
+        }
+      });
+      const data = await res.json();
+
+      if (data.success && data.linked) {
+        // 連携済み：通常のシフト入力画面を表示
+        selectedStaff = {
+          staff_id: data.data.staff_id,
+          name: data.data.staff_name,
+          store_id: data.data.store_id,
+          store_name: data.data.store_name,
+          employment_type: data.data.employment_type
+        };
+        role = (data.data.employment_type === 'PART_TIME' || data.data.employment_type === 'PART') ? 'part' : 'emp';
+
+        // スタッフ情報を表示
+        document.getElementById('staffInfo').style.display = 'none';
+        document.getElementById('storeSelect').style.display = 'none';
+        document.getElementById('staffSelect').style.display = 'none';
+        document.querySelector('label[style*="店舗フィルター"]').style.display = 'none';
+        document.querySelector('label[style*="スタッフ選択"]').style.display = 'none';
+
+        document.getElementById("profileBox").innerHTML =
+          `${window._login.name} さん（${selectedStaff.name} - ${selectedStaff.store_name}）としてログイン中`;
+
+        // 入力タイプ情報表示
+        updateRoleInfo();
+
+        // 既存のシフト希望を読み込み
+        await loadExistingPreferences();
+        renderCal();
+        refreshTips();
+      } else {
+        // 未連携：スタッフ登録画面を表示
+        showStaffRegistration();
+      }
+    } catch (error) {
+      console.error('LINE連携チェックエラー:', error);
+      alert('LINE連携状態の確認に失敗しました');
+    }
+  }
+
+  // ====== 入力タイプ情報更新 ======
+  function updateRoleInfo() {
+    const roleInfo = document.getElementById('roleInfo');
+    if (role === 'part') {
+      roleInfo.style.background = 'var(--green-weak)';
+      roleInfo.innerHTML = `
+        <strong style="color:var(--green-strong)">✅ アルバイト</strong><br>
+        出勤できる日を<strong class="green">緑</strong>で選択し、パターン or 時刻を指定してください
+      `;
+    } else {
+      roleInfo.style.background = 'var(--red-weak)';
+      roleInfo.innerHTML = `
+        <strong style="color:#b91c1c">🚫 社員</strong><br>
+        休みたい日を<strong style="color:#b91c1c">赤</strong>で選択してください
+      `;
+    }
+  }
+
+  // ====== スタッフ登録画面表示 ======
+  function showStaffRegistration() {
+    // 既存のUI要素を非表示
+    document.querySelectorAll('.card').forEach(card => {
+      if (!card.querySelector('#profileBox')) {
+        card.style.display = 'none';
+      }
+    });
+    document.querySelector('.footerbar').style.display = 'none';
+
+    // 登録フォームを表示
+    const container = document.querySelector('.container');
+    const registrationCard = document.createElement('div');
+    registrationCard.className = 'card';
+    registrationCard.style.marginTop = '12px';
+    registrationCard.innerHTML = `
+      <div class="title">スタッフ情報登録</div>
+      <div class="helper" style="margin:10px 0">
+        初めてご利用の方は、スタッフ情報を登録してください
+      </div>
+
+      <div style="margin-bottom:10px">
+        <label class="helper" style="display:block;margin-bottom:4px">🏪 店舗</label>
+        <select id="regStoreSelect" class="select" required></select>
+      </div>
+
+      <div style="margin-bottom:10px">
+        <label class="helper" style="display:block;margin-bottom:4px">👤 お名前</label>
+        <input type="text" id="regName" class="select" placeholder="山田太郎" required />
+      </div>
+
+      <div style="margin-bottom:10px">
+        <label class="helper" style="display:block;margin-bottom:4px">🔖 スタッフコード</label>
+        <input type="text" id="regStaffCode" class="select" placeholder="STAFF001" required />
+        <div class="helper small">※ 半角英数字で入力してください</div>
+      </div>
+
+      <div style="margin-bottom:10px">
+        <label class="helper" style="display:block;margin-bottom:4px">💼 雇用形態</label>
+        <select id="regEmploymentType" class="select" required>
+          <option value="PART_TIME">アルバイト</option>
+          <option value="FULL_TIME">社員</option>
+        </select>
+      </div>
+
+      <div style="margin-bottom:10px">
+        <label class="helper" style="display:block;margin-bottom:4px">📧 メールアドレス（任意）</label>
+        <input type="email" id="regEmail" class="select" placeholder="example@example.com" />
+      </div>
+
+      <div style="margin-bottom:10px">
+        <label class="helper" style="display:block;margin-bottom:4px">📱 電話番号（任意）</label>
+        <input type="tel" id="regPhone" class="select" placeholder="090-1234-5678" />
+      </div>
+
+      <div id="regResult" style="display:none;margin:10px 0"></div>
+
+      <button id="regSubmitBtn" class="btn btn-primary" style="width:100%;margin-top:10px">登録する</button>
+    `;
+    container.appendChild(registrationCard);
+
+    // 店舗リストを取得して表示
+    loadStoresForRegistration();
+
+    // 登録ボタンのイベント
+    document.getElementById('regSubmitBtn').onclick = handleStaffRegistration;
+  }
+
+  // ====== 店舗リスト取得（登録用） ======
+  async function loadStoresForRegistration() {
+    try {
+      const res = await fetch(`${API_BASE}/api/master/stores?tenant_id=${TENANT_ID}`);
+      const data = await res.json();
+
+      if (data.success) {
+        const select = document.getElementById('regStoreSelect');
+        select.innerHTML = '<option value="">選択してください</option>';
+        data.data.forEach(store => {
+          const option = document.createElement('option');
+          option.value = store.store_id;
+          option.textContent = store.store_name;
+          select.appendChild(option);
+        });
+      }
+    } catch (error) {
+      console.error('店舗リスト取得エラー:', error);
+    }
+  }
+
+  // ====== スタッフ登録処理 ======
+  async function handleStaffRegistration() {
+    const storeId = document.getElementById('regStoreSelect').value;
+    const name = document.getElementById('regName').value;
+    const staffCode = document.getElementById('regStaffCode').value;
+    const employmentType = document.getElementById('regEmploymentType').value;
+    const email = document.getElementById('regEmail').value;
+    const phone = document.getElementById('regPhone').value;
+
+    // バリデーション
+    if (!storeId || !name || !staffCode || !employmentType) {
+      alert('必須項目を入力してください');
+      return;
+    }
+
+    const regResult = document.getElementById('regResult');
+    const regSubmitBtn = document.getElementById('regSubmitBtn');
+
+    regSubmitBtn.disabled = true;
+    regSubmitBtn.textContent = '登録中...';
+
+    try {
+      const res = await fetch(`${API_BASE}/api/liff/register-staff`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${window._login.idToken}`
+        },
+        body: JSON.stringify({
+          tenant_id: TENANT_ID,
+          store_id: parseInt(storeId),
+          name: name,
+          staff_code: staffCode,
+          employment_type: employmentType,
+          email: email || null,
+          phone_number: phone || null
+        })
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        regResult.style.display = 'block';
+        regResult.className = 'success';
+        regResult.textContent = '✅ 登録が完了しました！画面を再読み込みします...';
+
+        // 2秒後にリロード
+        setTimeout(() => {
+          location.reload();
+        }, 2000);
+      } else {
+        regResult.style.display = 'block';
+        regResult.className = 'danger';
+        regResult.textContent = `❌ ${data.error}`;
+        regSubmitBtn.disabled = false;
+        regSubmitBtn.textContent = '登録する';
+      }
+    } catch (error) {
+      console.error('スタッフ登録エラー:', error);
+      regResult.style.display = 'block';
+      regResult.className = 'danger';
+      regResult.textContent = '❌ 登録中にエラーが発生しました';
+      regSubmitBtn.disabled = false;
+      regSubmitBtn.textContent = '登録する';
+    }
   }
 
   // ====== 月移動 ======
@@ -579,7 +799,10 @@
 
       const response = await fetch(url, {
         method: isUpdate ? 'PUT' : 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${window._login.idToken}`
+        },
         body: JSON.stringify(requestBody)
       });
 

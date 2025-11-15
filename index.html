@@ -25,12 +25,13 @@
     .pill.active-em{background:var(--red-weak);border-color:var(--red);color:#7f1d1d}
     .helper{color:var(--muted);font-size:13px;line-height:1.5}
     .calendar{margin-top:12px}
-    .grid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}
+    .grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
     .dow{font-size:12px;color:var(--muted);text-align:center}
     .cell{
       border:1px solid var(--gray);background:#fff;border-radius:12px;aspect-ratio:1/1.05;
       display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
       cursor:pointer;user-select:none;transition:transform .05s ease;
+      min-width:0;overflow:hidden;
     }
     .cell:active{transform:scale(.98)}
     .cell.disabled{opacity:.35;pointer-events:none}
@@ -38,7 +39,7 @@
     .cell.pt-selected{background:var(--green-weak);border-color:var(--green)}
     .cell.pt-selected .label{background:var(--green);color:#fff}
     .cell.em-selected{background:var(--red-weak);border-color:var(--red)}
-    .label{font-size:11px;padding:2px 8px;border-radius:999px}
+    .label{font-size:9px;padding:2px 4px;border-radius:999px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
     .toolbar{display:flex;align-items:center;justify-content:space-between;margin:12px 0}
     .btn{appearance:none;border:none;border-radius:12px;padding:12px 16px;font-weight:700;cursor:pointer}
     .btn-primary{background:var(--green);color:#fff}

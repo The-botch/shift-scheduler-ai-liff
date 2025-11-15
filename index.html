@@ -378,12 +378,18 @@
         };
         role = (data.data.employment_type === 'PART_TIME' || data.data.employment_type === 'PART') ? 'part' : 'emp';
 
-        // スタッフ情報を表示
-        document.getElementById('staffInfo').style.display = 'none';
-        document.getElementById('storeSelect').style.display = 'none';
-        document.getElementById('staffSelect').style.display = 'none';
-        document.querySelector('label[style*="店舗フィルター"]').style.display = 'none';
-        document.querySelector('label[style*="スタッフ選択"]').style.display = 'none';
+        // スタッフ情報を表示（セレクトボックスは非表示）
+        document.getElementById('storeSelect').parentElement.style.display = 'none';
+        document.getElementById('staffSelect').parentElement.style.display = 'none';
+
+        // 登録済みスタッフ情報を表示
+        const employmentTypeText = (selectedStaff.employment_type === 'PART_TIME' || selectedStaff.employment_type === 'PART') ? 'アルバイト' : '社員';
+        document.getElementById('staffInfo').style.display = 'block';
+        document.getElementById('staffInfo').innerHTML = `
+          <strong>🏪 店舗:</strong> ${selectedStaff.store_name}<br>
+          <strong>👤 スタッフ:</strong> ${selectedStaff.name} さん<br>
+          <strong>💼 雇用形態:</strong> ${employmentTypeText}
+        `;
 
         document.getElementById("profileBox").innerHTML =
           `${window._login.name} さん（${selectedStaff.name} - ${selectedStaff.store_name}）としてログイン中`;

@@ -486,6 +486,11 @@
       </div>
 
       <div style="margin-bottom:10px">
+        <label class="helper" style="display:block;margin-bottom:4px">👔 役職</label>
+        <select id="regRole" class="select" required></select>
+      </div>
+
+      <div style="margin-bottom:10px">
         <label class="helper" style="display:block;margin-bottom:4px">📧 メールアドレス（任意）</label>
         <input type="email" id="regEmail" class="select" placeholder="example@example.com" />
       </div>
@@ -501,8 +506,9 @@
     `;
     container.appendChild(registrationCard);
 
-    // 店舗リストを取得して表示
+    // 店舗リストと役職リストを取得して表示
     loadStoresForRegistration();
+    loadRolesForRegistration();
 
     // 登録ボタンのイベント
     document.getElementById('regSubmitBtn').onclick = handleStaffRegistration;
@@ -529,9 +535,31 @@
     }
   }
 
+  // ====== 役職リスト取得（登録用） ======
+  async function loadRolesForRegistration() {
+    try {
+      const res = await fetch(`${API_BASE}/api/master/roles?tenant_id=${TENANT_ID}`);
+      const data = await res.json();
+
+      if (data.success) {
+        const select = document.getElementById('regRole');
+        select.innerHTML = '<option value="">選択してください</option>';
+        data.data.forEach(role => {
+          const option = document.createElement('option');
+          option.value = role.role_id;
+          option.textContent = role.role_name;
+          select.appendChild(option);
+        });
+      }
+    } catch (error) {
+      console.error('役職リスト取得エラー:', error);
+    }
+  }
+
   // ====== スタッフ登録処理 ======
   async function handleStaffRegistration() {
     const storeId = document.getElementById('regStoreSelect').value;
+    const roleId = document.getElementById('regRole').value;
     const name = document.getElementById('regName').value;
     const staffCode = document.getElementById('regStaffCode').value;
     const employmentType = document.getElementById('regEmploymentType').value;
@@ -539,7 +567,7 @@
     const phone = document.getElementById('regPhone').value;
 
     // バリデーション
-    if (!storeId || !name || !staffCode || !employmentType) {
+    if (!storeId || !roleId || !name || !staffCode || !employmentType) {
       alert('必須項目を入力してください');
       return;
     }
@@ -560,6 +588,7 @@
         body: JSON.stringify({
           tenant_id: TENANT_ID,
           store_id: parseInt(storeId),
+          role_id: parseInt(roleId),
           name: name,
           staff_code: staffCode,
           employment_type: employmentType,

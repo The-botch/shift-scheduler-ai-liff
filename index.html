@@ -343,6 +343,15 @@
   async function initLIFF(){
     await liff.init({ liffId: LIFF_ID });
     if(!liff.isLoggedIn()){
+      // ログイン前はシフト入力UI全体を非表示
+      const cards = document.querySelectorAll('.card');
+      cards.forEach((card, index) => {
+        if (index > 0) { // 最初のカード（ヘッダー）以外を非表示
+          card.style.display = 'none';
+        }
+      });
+      document.querySelector('.footerbar').style.display = 'none';
+
       document.getElementById("profileBox").innerHTML =
         `LINEログインが必要です。<button class="btn btn-primary" onclick="liff.login()">ログイン</button>`;
       return;

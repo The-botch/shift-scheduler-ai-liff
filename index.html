@@ -722,7 +722,10 @@
       }else{
         start = document.getElementById("startTime").value || "09:00";
         end   = document.getElementById("endTime").value || "18:00";
-        tag = `${start}〜${end}`;
+        // カレンダー表示用に短縮形を作成（例：09:00 → 9）
+        const shortStart = start.replace(/^0/, '').replace(/:00$/, '');
+        const shortEnd = end.replace(/^0/, '').replace(/:00$/, '');
+        tag = `${shortStart}-${shortEnd}`;
       }
       selected.set(key,{type:"part", start, end, label:tag});
       cell.classList.add("pt-selected");

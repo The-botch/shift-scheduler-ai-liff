@@ -45,6 +45,7 @@
     .btn-primary:disabled{opacity:.5;cursor:not-allowed}
     .btn-outline{background:#fff;border:1px solid var(--gray)}
     .select{width:100%;padding:10px 12px;border:1px solid var(--gray);border-radius:12px;background:#fff}
+    .time-input{width:auto;max-width:140px;flex:0 0 auto}
     .footerbar{position:sticky;bottom:0;left:0;right:0;background:rgba(255,255,255,.9);backdrop-filter:blur(6px);border-top:1px solid var(--gray);padding:10px}
     .flex{display:flex;align-items:center;gap:10px}
     .grow{flex:1}
@@ -122,9 +123,9 @@
       <div id="timeBox" style="display:none;margin-top:10px">
         <div class="section-title">時刻入力</div>
         <div class="row">
-          <input type="time" id="startTime" class="select" style="max-width:160px" value="09:00" />
+          <input type="time" id="startTime" class="select time-input" value="09:00" />
           <span class="helper" style="align-self:center">〜</span>
-          <input type="time" id="endTime" class="select" style="max-width:160px" value="18:00" />
+          <input type="time" id="endTime" class="select time-input" value="18:00" />
         </div>
         <div class="helper small">指定した開始・終了時刻が、新規選択した日に適用されます。</div>
       </div>

@@ -178,6 +178,7 @@
   let selected = new Map(); // key=YYYY-MM-DD, val={type:'part'|'emp', start,end,label}
   let currentPattern = PATTERNS[0];
   let existingPreferenceId = null; // 既存のシフト希望ID
+  let employmentTypesMap = new Map(); // employment_code -> {employment_name, payment_type}
 
   // ====== スタッフと店舗データ読み込み ======
   async function loadStaffAndStores() {
@@ -203,6 +204,36 @@
       console.error('データ読み込みエラー:', error);
       alert('スタッフ・店舗データの読み込みに失敗しました');
     }
+  }
+
+  // ====== 雇用形態マスタ読み込み ======
+  async function loadEmploymentTypes() {
+    try {
+      const res = await fetch(`${API_BASE}/api/master/employment-types?tenant_id=${TENANT_ID}`);
+      const data = await res.json();
+
+      if (data.success) {
+        data.data.forEach(empType => {
+          employmentTypesMap.set(empType.employment_code, {
+            employment_name: empType.employment_name,
+            payment_type: empType.payment_type
+          });
+        });
+      }
+    } catch (error) {
+      console.error('雇用形態マスタ読み込みエラー:', error);
+    }
+  }
+
+  // ====== 雇用形態から役割を判定 ======
+  function determineRoleFromEmploymentType(employmentTypeCode) {
+    const empType = employmentTypesMap.get(employmentTypeCode);
+    if (!empType) {
+      // デフォルトは従来のロジック（念のため）
+      return (employmentTypeCode === 'PART_TIME' || employmentTypeCode === 'PART') ? 'part' : 'emp';
+    }
+    // payment_typeで判定: HOURLYならアルバイト、それ以外（MONTHLYなど）は社員
+    return empType.payment_type === 'HOURLY' ? 'part' : 'emp';
   }
 
   // ====== 店舗セレクトボックス生成 ======
@@ -255,9 +286,9 @@
     const selectedOption = select.options[select.selectedIndex];
     selectedStaff = JSON.parse(selectedOption.dataset.staff);
 
-    // 雇用形態により役割を自動設定
+    // 雇用形態により役割を自動設定（payment_typeベース）
     const employmentType = selectedStaff.employment_type;
-    role = (employmentType === 'PART_TIME' || employmentType === 'PART') ? 'part' : 'emp';
+    role = determineRoleFromEmploymentType(employmentType);
 
     // スタッフ情報表示
     const staffInfo = document.getElementById('staffInfo');
@@ -345,6 +376,10 @@
   // ====== LIFF ======
   async function initLIFF(){
     await liff.init({ liffId: LIFF_ID });
+
+    // 雇用形態マスタを先に読み込み（役割判定に必要）
+    await loadEmploymentTypes();
+
     if(!liff.isLoggedIn()){
       // ログイン前はシフト入力UI全体を非表示
       const cards = document.querySelectorAll('.card');
@@ -388,14 +423,14 @@
           store_name: data.data.store_name,
           employment_type: data.data.employment_type
         };
-        role = (data.data.employment_type === 'PART_TIME' || data.data.employment_type === 'PART') ? 'part' : 'emp';
+        role = determineRoleFromEmploymentType(data.data.employment_type);
 
         // スタッフ情報を表示（セレクトボックスは非表示）
         document.getElementById('storeSelect').parentElement.style.display = 'none';
         document.getElementById('staffSelect').parentElement.style.display = 'none';
 
         // 登録済みスタッフ情報を表示
-        const employmentTypeText = (selectedStaff.employment_type === 'PART_TIME' || selectedStaff.employment_type === 'PART') ? 'アルバイト' : '社員';
+        const employmentTypeText = (role === 'part') ? 'アルバイト' : '社員';
         document.getElementById('staffInfo').style.display = 'block';
         document.getElementById('staffInfo').innerHTML = `
           <strong>🏪 店舗:</strong> ${selectedStaff.store_name}<br>
@@ -480,10 +515,7 @@
 
       <div style="margin-bottom:10px">
         <label class="helper" style="display:block;margin-bottom:4px">💼 雇用形態</label>
-        <select id="regEmploymentType" class="select" required>
-          <option value="PART_TIME">アルバイト</option>
-          <option value="FULL_TIME">社員</option>
-        </select>
+        <select id="regEmploymentType" class="select" required></select>
       </div>
 
       <div style="margin-bottom:10px">
@@ -507,9 +539,10 @@
     `;
     container.appendChild(registrationCard);
 
-    // 店舗リストと役職リストを取得して表示
+    // 店舗リスト、役職リスト、雇用形態リストを取得して表示
     loadStoresForRegistration();
     loadRolesForRegistration();
+    loadEmploymentTypesForRegistration();
 
     // 登録ボタンのイベント
     document.getElementById('regSubmitBtn').onclick = handleStaffRegistration;
@@ -554,6 +587,31 @@
       }
     } catch (error) {
       console.error('役職リスト取得エラー:', error);
+    }
+  }
+
+  // ====== 雇用形態リスト取得（登録用） ======
+  async function loadEmploymentTypesForRegistration() {
+    try {
+      // キャッシュが空の場合は先に読み込み
+      if (employmentTypesMap.size === 0) {
+        await loadEmploymentTypes();
+      }
+
+      const select = document.getElementById('regEmploymentType');
+      select.innerHTML = '<option value="">選択してください</option>';
+
+      // キャッシュからドロップダウンを生成
+      employmentTypesMap.forEach((empTypeData, employmentCode) => {
+        const option = document.createElement('option');
+        option.value = employmentCode;
+        option.textContent = empTypeData.employment_name;
+        // payment_typeをdata属性に保存（後でシフト入力タイプ判定に使用）
+        option.setAttribute('data-payment-type', empTypeData.payment_type);
+        select.appendChild(option);
+      });
+    } catch (error) {
+      console.error('雇用形態リスト取得エラー:', error);
     }
   }
 

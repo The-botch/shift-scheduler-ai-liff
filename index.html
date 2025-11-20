@@ -504,12 +504,20 @@
   // ====== 入力タイプ情報更新 ======
   function updateRoleInfo() {
     const roleInfo = document.getElementById('roleInfo');
+    const modeSelect = document.getElementById('modeSelect');
+    const patternBox = document.getElementById('patternBox');
+    const timeBox = document.getElementById('timeBox');
+
     if (role === 'part') {
+      // アルバイトの場合
       roleInfo.style.background = 'var(--green-weak)';
       roleInfo.innerHTML = `
         <strong style="color:var(--green-strong)">✅ アルバイト</strong><br>
         出勤できる日を<strong class="green">緑</strong>で選択し、パターン or 時刻を指定してください
       `;
+      // パターン/時刻選択を表示
+      if (modeSelect) modeSelect.style.display = 'block';
+      if (patternBox) patternBox.style.display = 'block';
     } else {
       // 社員の場合
       if (firstPlanWorkDays.length === 0) {
@@ -527,6 +535,10 @@
           第1案の出勤日から、休みたい日を<strong style="color:#b91c1c">赤</strong>で選択してください
         `;
       }
+      // 社員の場合は常にパターン/時刻選択を非表示
+      if (modeSelect) modeSelect.style.display = 'none';
+      if (patternBox) patternBox.style.display = 'none';
+      if (timeBox) timeBox.style.display = 'none';
     }
   }
 

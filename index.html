@@ -454,20 +454,13 @@
             const firstPlanData = await firstPlanRes.json();
 
             if (!firstPlanData.success || firstPlanData.count === 0) {
-              // 第一案が未作成
-              document.getElementById('blockBox').style.display = 'block';
-              document.getElementById('blockBox').textContent = '⚠️ 第1案が未作成です。管理者にお問い合わせください。';
-
-              // カレンダーと送信ボタンを非表示
-              document.querySelectorAll('.card').forEach((card, index) => {
-                if (index > 0) card.style.display = 'none';
-              });
-              document.querySelector('.footerbar').style.display = 'none';
-              return;
+              // 第一案が未作成の場合、出勤日リストを空にする
+              firstPlanWorkDays = [];
+              console.warn('第1案が未作成です');
+            } else {
+              // 出勤日リストを作成
+              firstPlanWorkDays = firstPlanData.data.map(shift => shift.shift_date);
             }
-
-            // 出勤日リストを作成
-            firstPlanWorkDays = firstPlanData.data.map(shift => shift.shift_date);
           } catch (error) {
             console.error('第一案取得エラー:', error);
             alert('第一案データの取得に失敗しました');
@@ -518,11 +511,22 @@
         出勤できる日を<strong class="green">緑</strong>で選択し、パターン or 時刻を指定してください
       `;
     } else {
-      roleInfo.style.background = 'var(--red-weak)';
-      roleInfo.innerHTML = `
-        <strong style="color:#b91c1c">🚫 社員</strong><br>
-        第1案の出勤日から、休みたい日を<strong style="color:#b91c1c">赤</strong>で選択してください
-      `;
+      // 社員の場合
+      if (firstPlanWorkDays.length === 0) {
+        // 第1案未作成
+        roleInfo.style.background = '#fff3cd';
+        roleInfo.innerHTML = `
+          <strong style="color:#856404">⚠️ 社員</strong><br>
+          第1案が未作成です。管理者にお問い合わせください。
+        `;
+      } else {
+        // 第1案あり
+        roleInfo.style.background = 'var(--red-weak)';
+        roleInfo.innerHTML = `
+          <strong style="color:#b91c1c">🚫 社員</strong><br>
+          第1案の出勤日から、休みたい日を<strong style="color:#b91c1c">赤</strong>で選択してください
+        `;
+      }
     }
   }
 

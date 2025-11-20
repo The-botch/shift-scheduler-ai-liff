@@ -179,6 +179,7 @@
   let currentPattern = PATTERNS[0];
   let existingPreferenceId = null; // 既存のシフト希望ID
   let employmentTypesMap = new Map(); // employment_code -> {employment_name, payment_type}
+  let firstPlanWorkDays = []; // 社員用: 第一案の出勤日リスト (YYYY-MM-DD形式)
 
   // ====== スタッフと店舗データ読み込み ======
   async function loadStaffAndStores() {
@@ -290,6 +291,35 @@
     const employmentType = selectedStaff.employment_type;
     role = determineRoleFromEmploymentType(employmentType);
 
+    // 社員の場合、第一案データを取得
+    if (role === 'emp') {
+      const year = cur.getFullYear();
+      const month = cur.getMonth() + 1;
+
+      try {
+        const firstPlanRes = await fetch(
+          `${API_BASE}/api/shifts/?tenant_id=${TENANT_ID}&store_id=${selectedStaff.store_id}&staff_id=${selectedStaff.staff_id}&year=${year}&month=${month}&plan_type=FIRST`
+        );
+        const firstPlanData = await firstPlanRes.json();
+
+        if (!firstPlanData.success || firstPlanData.count === 0) {
+          // 第一案が未作成
+          alert('第1案が未作成です。管理者にお問い合わせください。');
+          firstPlanWorkDays = [];
+        } else {
+          // 出勤日リストを作成
+          firstPlanWorkDays = firstPlanData.data.map(shift => shift.shift_date);
+        }
+      } catch (error) {
+        console.error('第一案取得エラー:', error);
+        alert('第一案データの取得に失敗しました');
+        firstPlanWorkDays = [];
+      }
+    } else {
+      // アルバイトの場合は第一案不要
+      firstPlanWorkDays = [];
+    }
+
     // スタッフ情報表示
     const staffInfo = document.getElementById('staffInfo');
     staffInfo.style.display = 'block';
@@ -299,20 +329,7 @@
     `;
 
     // 入力タイプ情報表示
-    const roleInfo = document.getElementById('roleInfo');
-    if (role === 'part') {
-      roleInfo.style.background = 'var(--green-weak)';
-      roleInfo.innerHTML = `
-        <strong style="color:var(--green-strong)">✅ アルバイト</strong><br>
-        出勤できる日を<strong class="green">緑</strong>で選択し、パターン or 時刻を指定してください
-      `;
-    } else {
-      roleInfo.style.background = 'var(--red-weak)';
-      roleInfo.innerHTML = `
-        <strong style="color:#b91c1c">🚫 社員</strong><br>
-        休みたい日を<strong style="color:#b91c1c">赤</strong>で選択してください
-      `;
-    }
+    updateRoleInfo();
 
     // 既存のシフト希望を読み込み
     selected.clear();
@@ -425,6 +442,39 @@
         };
         role = determineRoleFromEmploymentType(data.data.employment_type);
 
+        // 社員の場合、第一案データを取得
+        if (role === 'emp') {
+          const year = cur.getFullYear();
+          const month = cur.getMonth() + 1;
+
+          try {
+            const firstPlanRes = await fetch(
+              `${API_BASE}/api/shifts/?tenant_id=${TENANT_ID}&store_id=${selectedStaff.store_id}&staff_id=${selectedStaff.staff_id}&year=${year}&month=${month}&plan_type=FIRST`
+            );
+            const firstPlanData = await firstPlanRes.json();
+
+            if (!firstPlanData.success || firstPlanData.count === 0) {
+              // 第一案が未作成
+              document.getElementById('blockBox').style.display = 'block';
+              document.getElementById('blockBox').textContent = '⚠️ 第1案が未作成です。管理者にお問い合わせください。';
+
+              // カレンダーと送信ボタンを非表示
+              document.querySelectorAll('.card').forEach((card, index) => {
+                if (index > 0) card.style.display = 'none';
+              });
+              document.querySelector('.footerbar').style.display = 'none';
+              return;
+            }
+
+            // 出勤日リストを作成
+            firstPlanWorkDays = firstPlanData.data.map(shift => shift.shift_date);
+          } catch (error) {
+            console.error('第一案取得エラー:', error);
+            alert('第一案データの取得に失敗しました');
+            return;
+          }
+        }
+
         // スタッフ情報を表示（セレクトボックスは非表示）
         document.getElementById('storeSelect').parentElement.style.display = 'none';
         document.getElementById('staffSelect').parentElement.style.display = 'none';
@@ -471,7 +521,7 @@
       roleInfo.style.background = 'var(--red-weak)';
       roleInfo.innerHTML = `
         <strong style="color:#b91c1c">🚫 社員</strong><br>
-        休みたい日を<strong style="color:#b91c1c">赤</strong>で選択してください
+        第1案の出勤日から、休みたい日を<strong style="color:#b91c1c">赤</strong>で選択してください
       `;
     }
   }
@@ -763,6 +813,13 @@
       const dot = document.createElement("div"); dot.className="d"; dot.textContent = d;
       const label = document.createElement("div"); label.className="label"; label.textContent = "";
 
+      // 社員の場合：第一案の出勤日でない日をグレーアウト
+      if (role === 'emp' && !firstPlanWorkDays.includes(key)) {
+        cell.classList.add("disabled");
+        cell.style.opacity = "0.3";
+        cell.style.cursor = "not-allowed";
+      }
+
       // 既存選択の反映
       const val = selected.get(key);
       if(val){
@@ -799,6 +856,12 @@
 
     // 新規選択
     if(role==="emp"){
+      // 社員の場合：第一案の出勤日のみ選択可能
+      if (!firstPlanWorkDays.includes(key)) {
+        alert('第1案で出勤日になっている日のみ選択できます');
+        return;
+      }
+
       selected.set(key, {type:"emp"});
       cell.classList.add("em-selected");
       label.style.display="block";

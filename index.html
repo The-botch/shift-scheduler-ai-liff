@@ -106,7 +106,7 @@
           <button class="btn btn-outline" id="nextMonth">＞</button>
         </div>
         <select id="modeSelect" class="select" style="max-width:220px">
-          <option value="pattern">パターンで入力（早番/遅番/通し）</option>
+          <option value="pattern">パターンで入力（早番/遅番/通し/どの時間帯でも可）</option>
           <option value="time">時刻で入力（自由入力）</option>
         </select>
       </div>
@@ -165,6 +165,7 @@
     {key:"早番", start:"09:00", end:"18:00"},
     {key:"遅番", start:"13:00", end:"22:00"},
     {key:"通し", start:"10:00", end:"20:00"},
+    {key:"どの時間帯でも可", start:"09:00", end:"22:00"},
   ];
 
   // ====== 状態 ======

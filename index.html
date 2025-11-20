@@ -818,15 +818,25 @@
       // 選択された日付を配列化
       const year = cur.getFullYear();
       const month = cur.getMonth() + 1;
-      const dateArray = Array.from(selected.keys())
-        .map(key => {
-          const date = new Date(key);
-          const d = String(date.getDate()).padStart(2, '0');
-          const m = String(date.getMonth() + 1).padStart(2, '0');
-          const y = date.getFullYear();
-          return `${y}-${m}-${d}`;
-        })
-        .join(',');
+
+      const dateArray = [];
+      const timeSlotArray = [];
+
+      Array.from(selected.keys()).forEach(key => {
+        const date = new Date(key);
+        const d = String(date.getDate()).padStart(2, '0');
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const y = date.getFullYear();
+        dateArray.push(`${y}-${m}-${d}`);
+
+        // 時刻情報を取得
+        const timeInfo = selected.get(key);
+        if (timeInfo && timeInfo.start && timeInfo.end) {
+          timeSlotArray.push(`${timeInfo.start}-${timeInfo.end}`);
+        } else {
+          timeSlotArray.push('');
+        }
+      });
 
       // リクエストボディ作成
       const requestBody = {
@@ -835,8 +845,9 @@
         staff_id: selectedStaff.staff_id,
         year: year,
         month: month,
-        preferred_days: role === 'part' ? dateArray : '',
-        ng_days: role === 'emp' ? dateArray : '',
+        preferred_days: role === 'part' ? dateArray.join(',') : '',
+        ng_days: role === 'emp' ? dateArray.join(',') : '',
+        preferred_time_slots: role === 'part' ? timeSlotArray.join(',') : '',
         notes: '',
         status: 'PENDING'
       };

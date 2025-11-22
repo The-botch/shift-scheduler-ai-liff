@@ -237,6 +237,40 @@
     return empType.payment_type === 'HOURLY' ? 'part' : 'emp';
   }
 
+  // ====== 第1案データ取得（社員のみ） ======
+  async function loadFirstPlanIfEmployee() {
+    if (role !== 'emp' || !selectedStaff) {
+      firstPlanWorkDays = [];
+      return;
+    }
+
+    const year = cur.getFullYear();
+    const month = cur.getMonth() + 1;
+
+    try {
+      const firstPlanRes = await fetch(
+        `${API_BASE}/api/shifts/?tenant_id=${TENANT_ID}&store_id=${selectedStaff.store_id}&staff_id=${selectedStaff.staff_id}&year=${year}&month=${month}&plan_type=FIRST`
+      );
+      const firstPlanData = await firstPlanRes.json();
+
+      if (!firstPlanData.success || firstPlanData.count === 0) {
+        // 第一案が未作成の場合、出勤日リストを空にする
+        firstPlanWorkDays = [];
+        console.warn(`${year}年${month}月の第1案が未作成です`);
+      } else {
+        // 出勤日リストを作成
+        firstPlanWorkDays = firstPlanData.data.map(shift => shift.shift_date);
+        console.log(`${year}年${month}月の第1案: ${firstPlanWorkDays.length}日`);
+      }
+    } catch (error) {
+      console.error('第一案取得エラー:', error);
+      firstPlanWorkDays = [];
+    }
+
+    // UIを更新
+    updateRoleInfo();
+  }
+
   // ====== 店舗セレクトボックス生成 ======
   function populateStoreSelect() {
     const select = document.getElementById('storeSelect');
@@ -292,33 +326,7 @@
     role = determineRoleFromEmploymentType(employmentType);
 
     // 社員の場合、第一案データを取得
-    if (role === 'emp') {
-      const year = cur.getFullYear();
-      const month = cur.getMonth() + 1;
-
-      try {
-        const firstPlanRes = await fetch(
-          `${API_BASE}/api/shifts/?tenant_id=${TENANT_ID}&store_id=${selectedStaff.store_id}&staff_id=${selectedStaff.staff_id}&year=${year}&month=${month}&plan_type=FIRST`
-        );
-        const firstPlanData = await firstPlanRes.json();
-
-        if (!firstPlanData.success || firstPlanData.count === 0) {
-          // 第一案が未作成
-          alert('第1案が未作成です。管理者にお問い合わせください。');
-          firstPlanWorkDays = [];
-        } else {
-          // 出勤日リストを作成
-          firstPlanWorkDays = firstPlanData.data.map(shift => shift.shift_date);
-        }
-      } catch (error) {
-        console.error('第一案取得エラー:', error);
-        alert('第一案データの取得に失敗しました');
-        firstPlanWorkDays = [];
-      }
-    } else {
-      // アルバイトの場合は第一案不要
-      firstPlanWorkDays = [];
-    }
+    await loadFirstPlanIfEmployee();
 
     // スタッフ情報表示
     const staffInfo = document.getElementById('staffInfo');
@@ -327,9 +335,6 @@
       <strong>選択中:</strong> ${selectedStaff.name} さん<br>
       <strong>雇用形態:</strong> ${selectedStaff.employment_type}
     `;
-
-    // 入力タイプ情報表示
-    updateRoleInfo();
 
     // 既存のシフト希望を読み込み
     selected.clear();
@@ -443,30 +448,7 @@
         role = determineRoleFromEmploymentType(data.data.employment_type);
 
         // 社員の場合、第一案データを取得
-        if (role === 'emp') {
-          const year = cur.getFullYear();
-          const month = cur.getMonth() + 1;
-
-          try {
-            const firstPlanRes = await fetch(
-              `${API_BASE}/api/shifts/?tenant_id=${TENANT_ID}&store_id=${selectedStaff.store_id}&staff_id=${selectedStaff.staff_id}&year=${year}&month=${month}&plan_type=FIRST`
-            );
-            const firstPlanData = await firstPlanRes.json();
-
-            if (!firstPlanData.success || firstPlanData.count === 0) {
-              // 第一案が未作成の場合、出勤日リストを空にする
-              firstPlanWorkDays = [];
-              console.warn('第1案が未作成です');
-            } else {
-              // 出勤日リストを作成
-              firstPlanWorkDays = firstPlanData.data.map(shift => shift.shift_date);
-            }
-          } catch (error) {
-            console.error('第一案取得エラー:', error);
-            alert('第一案データの取得に失敗しました');
-            return;
-          }
-        }
+        await loadFirstPlanIfEmployee();
 
         // スタッフ情報を表示（セレクトボックスは非表示）
         document.getElementById('storeSelect').parentElement.style.display = 'none';
@@ -754,14 +736,18 @@
   document.getElementById("prevMonth").onclick = async ()=>{
     cur.setMonth(cur.getMonth()-1);
     selected.clear();
+    await loadFirstPlanIfEmployee();
     await loadExistingPreferences();
     renderCal();
+    refreshTips();
   };
   document.getElementById("nextMonth").onclick = async ()=>{
     cur.setMonth(cur.getMonth()+1);
     selected.clear();
+    await loadFirstPlanIfEmployee();
     await loadExistingPreferences();
     renderCal();
+    refreshTips();
   };
 
   // ====== 入力モード切替 ======

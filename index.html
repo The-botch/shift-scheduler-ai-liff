@@ -95,6 +95,9 @@
       <div id="roleInfo" class="helper" style="padding:8px;background:var(--gray);border-radius:8px">
         スタッフを選択すると、雇用形態に応じて自動設定されます
       </div>
+      <div id="deadlineInfo" style="padding:8px;margin-top:8px;background:#fff3cd;border-radius:8px;display:none">
+        <!-- 締切情報がここに表示されます -->
+      </div>
     </div>
 
     <!-- 月選択＆パターン/時刻 -->
@@ -180,6 +183,33 @@
   let existingPreferenceId = null; // 既存のシフト希望ID
   let employmentTypesMap = new Map(); // employment_code -> {employment_name, payment_type}
   let firstPlanWorkDays = []; // 社員用: 第一案の出勤日リスト (YYYY-MM-DD形式)
+
+  // ====== 締切判定 ======
+  /**
+   * N月のシフト希望入力締切をチェック
+   * 締切: N-1月の10日23:59まで
+   * @param {number} year - 対象年
+   * @param {number} month - 対象月 (1-12)
+   * @returns {boolean} true=締切過ぎている, false=まだ入力可能
+   */
+  function isDeadlinePassed(year, month) {
+    const now = new Date();
+
+    // N月の締切 = N-1月の10日23:59
+    let deadlineYear = year;
+    let deadlineMonth = month - 1;
+
+    // 1月の場合は前年12月が締切月
+    if (deadlineMonth === 0) {
+      deadlineYear--;
+      deadlineMonth = 12;
+    }
+
+    // 締切日時: N-1月10日23:59:59
+    const deadline = new Date(deadlineYear, deadlineMonth - 1, 10, 23, 59, 59);
+
+    return now > deadline;
+  }
 
   // ====== スタッフと店舗データ読み込み ======
   async function loadStaffAndStores() {
@@ -797,12 +827,17 @@
 
   function renderCal(){
     // 月ラベル
-    ymLabel.textContent = `${cur.getFullYear()}年 ${cur.getMonth()+1}月`;
+    const year = cur.getFullYear();
+    const month = cur.getMonth() + 1;
+    ymLabel.textContent = `${year}年 ${month}月`;
+
+    // 締切判定
+    const isPastDeadline = isDeadlinePassed(year, month);
 
     // グリッド
     calGrid.innerHTML = "";
     const firstDow = (new Date(cur)).getDay();
-    const max = new Date(cur.getFullYear(), cur.getMonth()+1, 0).getDate();
+    const max = new Date(year, month, 0).getDate();
 
     // 先頭空白
     for(let i=0;i<firstDow;i++){
@@ -814,14 +849,20 @@
     for(let d=1; d<=max; d++){
       const cell = document.createElement("div");
       cell.className = "cell";
-      const date = new Date(cur.getFullYear(), cur.getMonth(), d);
+      const date = new Date(year, month - 1, d);
       const key = ymd(date);
 
       const dot = document.createElement("div"); dot.className="d"; dot.textContent = d;
       const label = document.createElement("div"); label.className="label"; label.textContent = "";
 
+      // 締切後は全ての日付を選択不可
+      if (isPastDeadline) {
+        cell.classList.add("disabled");
+        cell.style.opacity = "0.3";
+        cell.style.cursor = "not-allowed";
+      }
       // 社員の場合：第一案の出勤日でない日をグレーアウト
-      if (role === 'emp' && !firstPlanWorkDays.includes(key)) {
+      else if (role === 'emp' && !firstPlanWorkDays.includes(key)) {
         cell.classList.add("disabled");
         cell.style.opacity = "0.3";
         cell.style.cursor = "not-allowed";
@@ -852,6 +893,15 @@
   }
 
   function toggleSelect(key, cell, label){
+    // 締切チェック
+    const year = cur.getFullYear();
+    const month = cur.getMonth() + 1;
+    if (isDeadlinePassed(year, month)) {
+      const prevMonth = month === 1 ? 12 : month - 1;
+      alert(`${year}年${month}月のシフト希望入力期限は${month === 1 ? year - 1 : year}年${prevMonth}月10日23:59で終了しました`);
+      return;
+    }
+
     // 解除
     if(selected.has(key)){
       selected.delete(key);
@@ -899,22 +949,41 @@
   function refreshTips(){
     const tip = document.getElementById("tipBox");
     const block = document.getElementById("blockBox");
+    const deadlineInfo = document.getElementById("deadlineInfo");
 
     if (!selectedStaff) {
       tip.innerHTML = "スタッフを選択してください";
       block.style.display = "none";
+      deadlineInfo.style.display = "none";
       document.getElementById("submitBtn").disabled = true;
       return;
+    }
+
+    // 締切情報の表示
+    const year = cur.getFullYear();
+    const month = cur.getMonth() + 1;
+    const isPastDeadline = isDeadlinePassed(year, month);
+
+    if (isPastDeadline) {
+      const prevMonth = month === 1 ? 12 : month - 1;
+      const prevYear = month === 1 ? year - 1 : year;
+      deadlineInfo.innerHTML = `⚠️ <strong>${year}年${month}月のシフト希望入力期限は${prevYear}年${prevMonth}月10日23:59で終了しました</strong><br>既存の希望は閲覧できますが、編集・新規登録はできません。`;
+      deadlineInfo.style.display = "block";
+      document.getElementById("submitBtn").disabled = true;
+    } else {
+      const prevMonth = month === 1 ? 12 : month - 1;
+      const prevYear = month === 1 ? year - 1 : year;
+      deadlineInfo.innerHTML = `📅 ${year}年${month}月のシフト希望入力期限: ${prevYear}年${prevMonth}月10日23:59まで`;
+      deadlineInfo.style.display = "block";
+      document.getElementById("submitBtn").disabled = false;
     }
 
     if(role==="emp"){
       tip.innerHTML = "赤い日が「休み希望」です。選択した日が休み希望として登録されます。";
       block.style.display = "none";
-      document.getElementById("submitBtn").disabled = false;
     }else{
       tip.innerHTML = "緑の選択が「出勤可能日」です。新しくタップする日は、上のパターン／時刻の設定で登録されます。";
       block.style.display = "none";
-      document.getElementById("submitBtn").disabled = false;
     }
   }
 
@@ -928,6 +997,17 @@
 
   // ====== 送信処理（新APIエンドポイント対応） ======
   document.getElementById("submitBtn").onclick = async ()=>{
+    const year = cur.getFullYear();
+    const month = cur.getMonth() + 1;
+
+    // 締切チェック
+    if (isDeadlinePassed(year, month)) {
+      const prevMonth = month === 1 ? 12 : month - 1;
+      const prevYear = month === 1 ? year - 1 : year;
+      alert(`${year}年${month}月のシフト希望入力期限は${prevYear}年${prevMonth}月10日23:59で終了しました`);
+      return;
+    }
+
     if (!selectedStaff) {
       alert("スタッフを選択してください");
       return;
@@ -944,8 +1024,6 @@
 
     try {
       // 選択された日付を配列化
-      const year = cur.getFullYear();
-      const month = cur.getMonth() + 1;
 
       const dateArray = [];
       const timeSlotArray = [];

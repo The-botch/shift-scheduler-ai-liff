@@ -951,11 +951,8 @@
       const timeSlotArray = [];
 
       Array.from(selected.keys()).forEach(key => {
-        const date = new Date(key);
-        const d = String(date.getDate()).padStart(2, '0');
-        const m = String(date.getMonth() + 1).padStart(2, '0');
-        const y = date.getFullYear();
-        dateArray.push(`${y}-${m}-${d}`);
+        // key はすでに "YYYY-MM-DD" 形式なので、そのまま使う
+        dateArray.push(key);
 
         // 時刻情報を取得
         const timeInfo = selected.get(key);

@@ -368,10 +368,11 @@
 
     // スタッフ情報表示
     const staffInfo = document.getElementById('staffInfo');
+    const inputTypeText = (role === 'part') ? 'アルバイト' : '社員';
     staffInfo.style.display = 'block';
     staffInfo.innerHTML = `
       <strong>選択中:</strong> ${selectedStaff.name} さん<br>
-      <strong>雇用形態:</strong> ${selectedStaff.employment_type}
+      <strong>シフト入力方式:</strong> ${inputTypeText}
     `;
 
     // 既存のシフト希望を読み込み
@@ -493,12 +494,12 @@
         document.getElementById('staffSelect').parentElement.style.display = 'none';
 
         // 登録済みスタッフ情報を表示
-        const employmentTypeText = (role === 'part') ? 'アルバイト' : '社員';
+        const inputTypeText = (role === 'part') ? 'アルバイト' : '社員';
         document.getElementById('staffInfo').style.display = 'block';
         document.getElementById('staffInfo').innerHTML = `
           <strong>🏪 店舗:</strong> ${selectedStaff.store_name}<br>
           <strong>👤 スタッフ:</strong> ${selectedStaff.name} さん<br>
-          <strong>💼 雇用形態:</strong> ${employmentTypeText}
+          <strong>📝 シフト入力方式:</strong> ${inputTypeText}
         `;
 
         document.getElementById("profileBox").innerHTML =

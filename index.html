@@ -163,6 +163,9 @@
   const API_BASE = "https://shift-scheduler-ai-production.up.railway.app"; // ← Railway本番環境
   const TENANT_ID = 3; // テナントID (Stand Banh Mi)
 
+  // 締切チェック機能（テスト時はfalseに設定）
+  const ENABLE_DEADLINE_CHECK = true; // ← テスト時はfalseにする
+
   // パターン → 時刻（必要に応じて後で編集可能）
   const PATTERNS = [
     {key:"早番", start:"09:00", end:"18:00"},
@@ -193,6 +196,11 @@
    * @returns {boolean} true=締切過ぎている, false=まだ入力可能
    */
   function isDeadlinePassed(year, month) {
+    // 締切チェックが無効の場合は常に入力可能
+    if (!ENABLE_DEADLINE_CHECK) {
+      return false;
+    }
+
     const now = new Date();
 
     // N月の締切 = N-1月の10日23:59
@@ -960,21 +968,27 @@
     }
 
     // 締切情報の表示
-    const year = cur.getFullYear();
-    const month = cur.getMonth() + 1;
-    const isPastDeadline = isDeadlinePassed(year, month);
+    if (ENABLE_DEADLINE_CHECK) {
+      const year = cur.getFullYear();
+      const month = cur.getMonth() + 1;
+      const isPastDeadline = isDeadlinePassed(year, month);
 
-    if (isPastDeadline) {
-      const prevMonth = month === 1 ? 12 : month - 1;
-      const prevYear = month === 1 ? year - 1 : year;
-      deadlineInfo.innerHTML = `⚠️ <strong>${year}年${month}月のシフト希望入力期限は${prevYear}年${prevMonth}月10日23:59で終了しました</strong><br>既存の希望は閲覧できますが、編集・新規登録はできません。`;
-      deadlineInfo.style.display = "block";
-      document.getElementById("submitBtn").disabled = true;
+      if (isPastDeadline) {
+        const prevMonth = month === 1 ? 12 : month - 1;
+        const prevYear = month === 1 ? year - 1 : year;
+        deadlineInfo.innerHTML = `⚠️ <strong>${year}年${month}月のシフト希望入力期限は${prevYear}年${prevMonth}月10日23:59で終了しました</strong><br>既存の希望は閲覧できますが、編集・新規登録はできません。`;
+        deadlineInfo.style.display = "block";
+        document.getElementById("submitBtn").disabled = true;
+      } else {
+        const prevMonth = month === 1 ? 12 : month - 1;
+        const prevYear = month === 1 ? year - 1 : year;
+        deadlineInfo.innerHTML = `📅 ${year}年${month}月のシフト希望入力期限: ${prevYear}年${prevMonth}月10日23:59まで`;
+        deadlineInfo.style.display = "block";
+        document.getElementById("submitBtn").disabled = false;
+      }
     } else {
-      const prevMonth = month === 1 ? 12 : month - 1;
-      const prevYear = month === 1 ? year - 1 : year;
-      deadlineInfo.innerHTML = `📅 ${year}年${month}月のシフト希望入力期限: ${prevYear}年${prevMonth}月10日23:59まで`;
-      deadlineInfo.style.display = "block";
+      // 締切チェック無効時は締切情報を非表示
+      deadlineInfo.style.display = "none";
       document.getElementById("submitBtn").disabled = false;
     }
 

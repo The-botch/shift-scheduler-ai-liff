@@ -1,5 +1,4 @@
 import express from 'express'
-import cors from 'cors'
 import dotenv from 'dotenv'
 import cron from 'node-cron'
 import { sendShiftReminders } from './services/reminderService.js'
@@ -8,40 +7,6 @@ dotenv.config()
 
 const app = express()
 const PORT = process.env.PORT || 3001
-
-// CORS設定: Vercelからのリクエストを許可
-app.use(cors({
-  origin: function (origin, callback) {
-    // リクエストにoriginがない場合（同一オリジンなど）は許可
-    if (!origin) return callback(null, true)
-
-    // 許可するオリジン
-    const allowedOrigins = [
-      'https://shift-scheduler-ai-liff.vercel.app',  // 本番環境
-      /https:\/\/.*\.vercel\.app$/,                   // Vercelの全プレビュー環境
-      'http://localhost:5173',                        // ローカル開発
-      'http://127.0.0.1:5173'                         // ローカル開発
-    ]
-
-    // オリジンが許可リストに含まれているかチェック
-    const isAllowed = allowedOrigins.some(allowed => {
-      if (typeof allowed === 'string') {
-        return origin === allowed
-      } else if (allowed instanceof RegExp) {
-        return allowed.test(origin)
-      }
-      return false
-    })
-
-    if (isAllowed) {
-      callback(null, true)
-    } else {
-      console.warn(`⚠️ CORS: Blocked request from origin: ${origin}`)
-      callback(new Error('Not allowed by CORS'))
-    }
-  },
-  credentials: true
-}))
 
 app.use(express.json())
 

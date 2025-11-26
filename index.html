@@ -170,13 +170,13 @@
       return 'http://localhost:3001';
     }
 
-    // STG環境（Vercelのプレビュー/stagingブランチ）
-    if (hostname.includes('-git-') || hostname.includes('staging')) {
-      return 'https://shift-scheduler-ai-staging.up.railway.app';
+    // 本番環境（完全一致のみ）
+    if (hostname === 'shift-scheduler-ai-liff.vercel.app') {
+      return 'https://shift-scheduler-ai-production.up.railway.app';
     }
 
-    // 本番環境（shift-scheduler-ai-liff.vercel.app）
-    return 'https://shift-scheduler-ai-production.up.railway.app';
+    // それ以外のVercelドメイン = STG環境（Preview/staging）
+    return 'https://shift-scheduler-ai-staging.up.railway.app';
   }
 
   const API_BASE = getApiBase();

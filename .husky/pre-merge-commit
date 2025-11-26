@@ -1,0 +1,4 @@
+echo "Running pre-merge checks on entire repository..."
+npm run lint
+npm run format:check
+echo "Pre-merge checks passed!"

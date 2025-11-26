@@ -1,5 +1,8 @@
-# Backend
+# Dependencies
+node_modules/
 backend/node_modules/
+
+# Backend
 backend/.env
 backend/*.log
 

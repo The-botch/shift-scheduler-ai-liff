@@ -160,8 +160,31 @@
 <script>
   // ====== 設定（あなたの値に変更） ======
   const LIFF_ID  = "2008227932-Rq9rJrJn";            // ← あなたの LIFF ID
-  const API_BASE = "https://shift-scheduler-ai-production.up.railway.app"; // ← Railway本番環境
+
+  // 環境に応じてAPIベースURLを自動切り替え
+  function getApiBase() {
+    const hostname = window.location.hostname;
+
+    // ローカル開発環境
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      return 'http://localhost:3001';
+    }
+
+    // STG環境（Vercelのプレビュー/stagingブランチ）
+    if (hostname.includes('-git-') || hostname.includes('staging')) {
+      return 'https://shift-scheduler-ai-liff-backend-staging-staging.up.railway.app';
+    }
+
+    // 本番環境（shift-scheduler-ai-liff.vercel.app）
+    return 'https://shift-scheduler-ai-liff-production.up.railway.app';
+  }
+
+  const API_BASE = getApiBase();
   const TENANT_ID = 3; // テナントID (Stand Banh Mi)
+
+  // デバッグ用: 環境とAPI URLをコンソールに表示
+  console.log('🌍 Environment:', window.location.hostname);
+  console.log('🔗 API Base URL:', API_BASE);
 
   // 締切チェック機能（テスト時はfalseに設定）
   const ENABLE_DEADLINE_CHECK = true; // ← テスト時はfalseにする

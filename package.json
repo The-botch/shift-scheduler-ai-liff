@@ -7,8 +7,10 @@
     "prepare": "husky",
     "lint": "eslint . --ext .js,.html",
     "lint:fix": "eslint . --ext .js,.html --fix",
+    "lint:changed": "bash scripts/lint-changed.sh",
     "format": "prettier --write \"**/*.{js,json,html,css,md}\"",
-    "format:check": "prettier --check \"**/*.{js,json,html,css,md}\""
+    "format:check": "prettier --check \"**/*.{js,json,html,css,md}\"",
+    "format:changed": "bash scripts/format-check-changed.sh"
   },
   "keywords": [],
   "author": "",

@@ -172,11 +172,11 @@
 
     // STG環境（Vercelのプレビュー/stagingブランチ）
     if (hostname.includes('-git-') || hostname.includes('staging')) {
-      return 'https://shift-scheduler-ai-liff-backend-staging-staging.up.railway.app';
+      return 'https://shift-scheduler-ai-staging.up.railway.app';
     }
 
     // 本番環境（shift-scheduler-ai-liff.vercel.app）
-    return 'https://shift-scheduler-ai-liff-production.up.railway.app';
+    return 'https://shift-scheduler-ai-production.up.railway.app';
   }
 
   const API_BASE = getApiBase();

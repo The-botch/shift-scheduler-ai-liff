@@ -159,7 +159,26 @@
 
 <script>
   // ====== 設定（あなたの値に変更） ======
-  const LIFF_ID  = "2008227932-Rq9rJrJn";            // ← あなたの LIFF ID
+
+  // 環境に応じてLIFF IDを自動切り替え
+  function getLiffId() {
+    const hostname = window.location.hostname;
+
+    // ローカル開発環境
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      return '2008227932-M3lLVLVv'; // STG用LIFF ID
+    }
+
+    // 本番環境（完全一致のみ）
+    if (hostname === 'shift-scheduler-ai-liff.vercel.app') {
+      return '2008227932-Rq9rJrJn'; // 本番用LIFF ID
+    }
+
+    // それ以外のVercelドメイン = STG環境（Preview/staging）
+    return '2008227932-M3lLVLVv'; // STG用LIFF ID
+  }
+
+  const LIFF_ID = getLiffId();
 
   // 環境に応じてAPIベースURLを自動切り替え
   function getApiBase() {
@@ -182,9 +201,10 @@
   const API_BASE = getApiBase();
   const TENANT_ID = 3; // テナントID (Stand Banh Mi)
 
-  // デバッグ用: 環境とAPI URLをコンソールに表示
+  // デバッグ用: 環境情報をコンソールに表示
   console.log('🌍 Environment:', window.location.hostname);
   console.log('🔗 API Base URL:', API_BASE);
+  console.log('🆔 LIFF ID:', LIFF_ID);
 
   // 締切チェック機能（テスト時はfalseに設定）
   const ENABLE_DEADLINE_CHECK = true; // ← テスト時はfalseにする

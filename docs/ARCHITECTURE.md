@@ -59,16 +59,19 @@
 ## 技術スタック
 
 ### フロントエンド (LIFF)
+
 - HTML/CSS/JavaScript (Vanilla)
 - LIFF SDK v2
 - ホスティング: Vercel
 
 ### バックエンド API
+
 - Node.js + Express
 - PostgreSQL (pg)
 - ホスティング: Railway
 
 ### リマインダーサービス
+
 - Node.js + Express
 - node-cron (スケジューラー)
 - @line/bot-sdk (Messaging API)
@@ -77,19 +80,25 @@
 ## データベーススキーマ
 
 ### core.stores
+
 店舗マスタ
+
 - `store_id`: 店舗ID
 - `store_name`: 店舗名
 - `tenant_id`: テナントID
 
 ### core.roles
+
 役職マスタ
+
 - `role_id`: 役職ID
 - `role_name`: 役職名
 - `tenant_id`: テナントID
 
 ### core.employment_types
+
 雇用形態マスタ
+
 - `employment_type_id`: 雇用形態ID
 - `employment_code`: コード (FULL_TIME, PART_TIME, OUTSOURCE等)
 - `employment_name`: 名称
@@ -97,7 +106,9 @@
 - `tenant_id`: テナントID
 
 ### hr.staff
+
 スタッフマスタ
+
 - `staff_id`: スタッフID
 - `tenant_id`: テナントID
 - `store_id`: 店舗ID
@@ -107,7 +118,9 @@
 - `is_active`: 有効フラグ
 
 ### hr.staff_line_accounts
+
 LINE連携情報
+
 - `staff_line_id`: 連携ID
 - `tenant_id`: テナントID
 - `staff_id`: スタッフID
@@ -117,7 +130,9 @@ LINE連携情報
 - `is_active`: 有効フラグ
 
 ### ops.shift_preferences
+
 シフト希望
+
 - `preference_id`: 希望ID
 - `tenant_id`: テナントID
 - `staff_id`: スタッフID
@@ -129,7 +144,9 @@ LINE連携情報
 - `status`: ステータス (PENDING, APPROVED等)
 
 ### ops.shifts
+
 確定シフト・第1案
+
 - `shift_id`: シフトID
 - `tenant_id`: テナントID
 - `staff_id`: スタッフID
@@ -140,7 +157,9 @@ LINE連携情報
 - `shift_type`: シフト種別 (FIRST, SECOND等)
 
 ### ops.shift_plans
+
 シフトプラン
+
 - `plan_id`: プランID
 - `tenant_id`: テナントID
 - `store_id`: 店舗ID
@@ -152,17 +171,20 @@ LINE連携情報
 ## デプロイ環境
 
 ### Vercel (フロントエンド)
+
 - リポジトリ: `The-botch/shift-scheduler-ai-liff`
 - デプロイファイル: `index.html`
 - 自動デプロイ: mainブランチへのpush時
 
 ### Railway (バックエンドAPI)
+
 - リポジトリ: `The-botch/shift-scheduler-ai`
 - プロジェクト: shift-scheduler-ai
 - サービス: shift-scheduler-ai
 - 環境変数: DATABASE_URL, LINE_CHANNEL_ID等
 
 ### Railway (リマインダーサービス)
+
 - リポジトリ: `The-botch/shift-scheduler-ai-liff`
 - Root Directory: `/backend`
 - プロジェクト: shift-scheduler-ai (同じプロジェクト)
@@ -171,20 +193,23 @@ LINE連携情報
 - 環境変数: DATABASE_URL, LINE_CHANNEL_ACCESS_TOKEN等
 
 ### Railway (データベース)
+
 - PostgreSQL 16
 - 共有: バックエンドAPIとリマインダーサービスで共用
 
 ## 環境変数
 
 ### LIFF (index.html)
+
 ```javascript
-LIFF_ID = "2008227932-Rq9rJrJn"
-API_BASE = "https://shift-scheduler-ai-production.up.railway.app"
-TENANT_ID = 3
-ENABLE_DEADLINE_CHECK = true // 締切チェック有効化フラグ
+LIFF_ID = '2008227932-Rq9rJrJn';
+API_BASE = 'https://shift-scheduler-ai-production.up.railway.app';
+TENANT_ID = 3;
+ENABLE_DEADLINE_CHECK = true; // 締切チェック有効化フラグ
 ```
 
 ### バックエンドAPI (.env)
+
 ```
 DATABASE_URL=postgresql://...
 LINE_CHANNEL_ID=...
@@ -192,6 +217,7 @@ LINE_CHANNEL_SECRET=...
 ```
 
 ### リマインダーサービス (.env)
+
 ```
 DATABASE_URL=postgresql://...
 LINE_CHANNEL_ACCESS_TOKEN=...

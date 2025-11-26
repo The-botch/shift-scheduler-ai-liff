@@ -41,26 +41,31 @@
 #### 対象スタッフ
 
 **条件:**
+
 1. 雇用形態が「アルバイト」（`payment_type = 'HOURLY'`）
 2. LINE連携済み（`hr.staff_line_accounts.is_active = true`）
 3. 対象月のシフト希望が未提出（`ops.shift_preferences` にレコードなし）
 
 **除外:**
+
 - 正社員、契約社員、業務委託など（`payment_type != 'HOURLY'`）
 - シフト希望提出済みのスタッフ
 
 #### 実行タイミング
 
 **Cronスケジュール:**
+
 ```
 0 10 5,8 * *
 ```
 
 **意味:**
+
 - 毎月5日 10:00 JST
 - 毎月8日 10:00 JST
 
 **送信内容:**
+
 - N月5日・8日 → N+1月分のシフト希望リマインド
 - 例: 12月5日・8日 → 2025年1月分のリマインド
 
@@ -73,6 +78,7 @@
 ### 未提出スタッフ検出
 
 **SQL:**
+
 ```sql
 SELECT
   sla.line_user_id,
@@ -99,6 +105,7 @@ WHERE sla.tenant_id = $1
 ```
 
 **パラメータ:**
+
 - `$1`: tenant_id (3)
 - `$2`: 対象年 (2025)
 - `$3`: 対象月 (12)
@@ -112,6 +119,7 @@ WHERE sla.tenant_id = $1
 ### 使用API
 
 **LINE Messaging API:**
+
 - エンドポイント: `https://api.line.me/v2/bot/message/push`
 - 認証: `Authorization: Bearer {LINE_CHANNEL_ACCESS_TOKEN}`
 
@@ -133,6 +141,7 @@ https://liff.line.me/{LIFF_ID}
 ```
 
 **例:**
+
 ```
 【シフト提出リマインド】
 
@@ -161,6 +170,7 @@ GET /
 ```
 
 **レスポンス:**
+
 ```json
 {
   "status": "ok",
@@ -182,6 +192,7 @@ Content-Type: application/json
 ```
 
 **レスポンス:**
+
 ```json
 {
   "success": true,
@@ -233,6 +244,7 @@ PORT=3001
 ```
 
 **設定場所:**
+
 - ローカル開発: `backend/.env`
 - Railway: プロジェクトの環境変数設定
 
@@ -280,6 +292,7 @@ PORT=3001
 **サービス:** shift-scheduler-ai-liff
 
 **設定:**
+
 - Repository: `The-botch/shift-scheduler-ai-liff`
 - Root Directory: `/backend`
 - Branch: `main`
@@ -287,6 +300,7 @@ PORT=3001
 - Start Command: `npm start`
 
 **公開URL:**
+
 ```
 https://shift-scheduler-ai-liff-production.up.railway.app
 ```
@@ -333,12 +347,14 @@ curl -X POST https://shift-scheduler-ai-liff-production.up.railway.app/api/send-
 ### メッセージが送信されない
 
 **確認項目:**
+
 1. Railway環境変数が正しく設定されているか
 2. LINE_CHANNEL_ACCESS_TOKENが有効か
 3. データベース接続が成功しているか
 4. 対象スタッフが存在するか（未提出のアルバイト）
 
 **ログ確認:**
+
 ```
 Railwayダッシュボード → サービス → Logs
 ```
@@ -346,6 +362,7 @@ Railwayダッシュボード → サービス → Logs
 ### Cronジョブが実行されない
 
 **確認項目:**
+
 1. サーバーが起動しているか
 2. タイムゾーンがJSTか（Railway環境変数 `TZ=Asia/Tokyo`）
 3. ログに "Cron job scheduled" が出力されているか
@@ -353,6 +370,7 @@ Railwayダッシュボード → サービス → Logs
 ### データベース接続エラー
 
 **確認項目:**
+
 1. DATABASE_URLが正しいか
 2. PostgreSQLサービスが起動しているか
 3. ネットワーク接続が可能か
@@ -411,10 +429,11 @@ cron.schedule('0 9 3,7 * *', () => { ... })
 現在は順次実行（for loop）
 
 大量のスタッフがいる場合は並列化を検討:
+
 ```javascript
-await Promise.all(unsubmittedStaff.map(staff =>
-  sendLineMessage(staff.line_user_id, message)
-))
+await Promise.all(
+  unsubmittedStaff.map(staff => sendLineMessage(staff.line_user_id, message))
+);
 ```
 
 ### データベースクエリ

@@ -1,12 +1,12 @@
-import { messagingApi } from '@line/bot-sdk'
-import dotenv from 'dotenv'
-import pool from '../config/database.js'
+import { messagingApi } from '@line/bot-sdk';
+import dotenv from 'dotenv';
+import pool from '../config/database.js';
 
-dotenv.config()
+dotenv.config();
 
 const client = new messagingApi.MessagingApiClient({
-  channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN
-})
+  channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN,
+});
 
 /**
  * シフト未提出のアルバイトスタッフを取得
@@ -15,7 +15,7 @@ const client = new messagingApi.MessagingApiClient({
  * @returns {Promise<Array>} - 未提出スタッフのリスト
  */
 export async function getUnsubmittedPartTimeStaff(year, month) {
-  const tenantId = process.env.TENANT_ID || 3
+  const tenantId = process.env.TENANT_ID || 3;
 
   const query = `
     SELECT
@@ -38,14 +38,14 @@ export async function getUnsubmittedPartTimeStaff(year, month) {
           AND sp.year = $2
           AND sp.month = $3
       )
-  `
+  `;
 
   try {
-    const result = await pool.query(query, [tenantId, year, month])
-    return result.rows
+    const result = await pool.query(query, [tenantId, year, month]);
+    return result.rows;
   } catch (error) {
-    console.error('❌ Error fetching unsubmitted staff:', error)
-    throw error
+    console.error('❌ Error fetching unsubmitted staff:', error);
+    throw error;
   }
 }
 
@@ -61,14 +61,14 @@ export async function sendLineMessage(userId, message) {
       messages: [
         {
           type: 'text',
-          text: message
-        }
-      ]
-    })
-    console.log(`✅ Message sent to ${userId}`)
+          text: message,
+        },
+      ],
+    });
+    console.log(`✅ Message sent to ${userId}`);
   } catch (error) {
-    console.error(`❌ Error sending message to ${userId}:`, error)
-    throw error
+    console.error(`❌ Error sending message to ${userId}:`, error);
+    throw error;
   }
 }
 
@@ -78,27 +78,31 @@ export async function sendLineMessage(userId, message) {
  * @param {number} month - 対象月
  */
 export async function sendShiftReminders(year, month) {
-  console.log(`📅 Sending shift reminders for ${year}/${month}`)
+  console.log(`📅 Sending shift reminders for ${year}/${month}`);
 
   try {
-    const unsubmittedStaff = await getUnsubmittedPartTimeStaff(year, month)
+    const unsubmittedStaff = await getUnsubmittedPartTimeStaff(year, month);
 
     if (unsubmittedStaff.length === 0) {
-      console.log('✅ All part-time staff have submitted their shift preferences')
-      return { success: true, count: 0 }
+      console.log(
+        '✅ All part-time staff have submitted their shift preferences'
+      );
+      return { success: true, count: 0 };
     }
 
-    console.log(`📝 Found ${unsubmittedStaff.length} staff who haven't submitted`)
+    console.log(
+      `📝 Found ${unsubmittedStaff.length} staff who haven't submitted`
+    );
 
     // 締切日を計算（N月の締切 = N-1月10日）
-    let deadlineMonth = month - 1
-    let deadlineYear = year
+    let deadlineMonth = month - 1;
+    let deadlineYear = year;
     if (deadlineMonth === 0) {
-      deadlineMonth = 12
-      deadlineYear--
+      deadlineMonth = 12;
+      deadlineYear--;
     }
 
-    const results = []
+    const results = [];
     for (const staff of unsubmittedStaff) {
       const message = `【シフト提出リマインド】
 
@@ -111,22 +115,33 @@ ${year}年${month}月のシフト希望がまだ提出されていません。
 以下のリンクからシフト希望を入力してください：
 https://liff.line.me/${process.env.LIFF_ID || '2008227932-Rq9rJrJn'}
 
-ご協力をお願いいたします。`
+ご協力をお願いいたします。`;
 
       try {
-        await sendLineMessage(staff.line_user_id, message)
-        results.push({ staff_id: staff.staff_id, name: staff.name, success: true })
+        await sendLineMessage(staff.line_user_id, message);
+        results.push({
+          staff_id: staff.staff_id,
+          name: staff.name,
+          success: true,
+        });
       } catch (error) {
-        results.push({ staff_id: staff.staff_id, name: staff.name, success: false, error: error.message })
+        results.push({
+          staff_id: staff.staff_id,
+          name: staff.name,
+          success: false,
+          error: error.message,
+        });
       }
     }
 
-    const successCount = results.filter(r => r.success).length
-    console.log(`✅ Sent ${successCount}/${results.length} reminders successfully`)
+    const successCount = results.filter(r => r.success).length;
+    console.log(
+      `✅ Sent ${successCount}/${results.length} reminders successfully`
+    );
 
-    return { success: true, count: results.length, results }
+    return { success: true, count: results.length, results };
   } catch (error) {
-    console.error('❌ Error in sendShiftReminders:', error)
-    throw error
+    console.error('❌ Error in sendShiftReminders:', error);
+    throw error;
   }
 }

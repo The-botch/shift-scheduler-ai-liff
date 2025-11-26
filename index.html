@@ -1,627 +1,882 @@
 <!doctype html>
 <html lang="ja">
-<head>
-  <meta charset="utf-8" />
-  <title>シフト希望入力</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <!-- LIFF SDK -->
-  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-  <style>
-    :root{
-      --green:#16a34a; --green-weak:#dcfce7; --green-strong:#0f7a37;
-      --red:#dc2626; --red-weak:#fee2e2;
-      --gray:#e5e7eb; --text:#111827; --muted:#6b7280; --card:#ffffff; --bg:#f3f4f6;
-      --accent:#10b981;
-    }
-    *{box-sizing:border-box}
-    html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP","Yu Gothic UI","Yu Gothic",Meiryo,sans-serif;}
-    .container{max-width:720px;margin:0 auto;padding:16px}
-    .card{background:var(--card);border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.06);padding:16px}
-    .title{font-weight:700;font-size:18px;display:flex;align-items:center;gap:8px}
-    .badge{background:#e8f5ff;color:#0369a1;border-radius:999px;padding:4px 10px;font-size:12px}
-    .row{display:flex;gap:10px;flex-wrap:wrap}
-    .pill{cursor:pointer;border-radius:999px;border:1px solid var(--gray);padding:8px 14px;font-weight:600}
-    .pill.active-pt{background:var(--green-weak);border-color:var(--green);color:var(--green-strong)}
-    .pill.active-em{background:var(--red-weak);border-color:var(--red);color:#7f1d1d}
-    .helper{color:var(--muted);font-size:13px;line-height:1.5}
-    .calendar{margin-top:12px}
-    .grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
-    .dow{font-size:12px;color:var(--muted);text-align:center}
-    .cell{
-      border:1px solid var(--gray);background:#fff;border-radius:12px;aspect-ratio:1/1.05;
-      display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
-      cursor:pointer;user-select:none;transition:transform .05s ease;
-      min-width:0;overflow:hidden;
-    }
-    .cell:active{transform:scale(.98)}
-    .cell.disabled{opacity:.35;pointer-events:none}
-    .cell .d{font-weight:700}
-    .cell.pt-selected{background:var(--green-weak);border-color:var(--green)}
-    .cell.pt-selected .label{background:var(--green);color:#fff}
-    .cell.em-selected{background:var(--red-weak);border-color:var(--red)}
-    .label{font-size:9px;padding:2px 4px;border-radius:999px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
-    .toolbar{display:flex;align-items:center;justify-content:space-between;margin:12px 0}
-    .btn{appearance:none;border:none;border-radius:12px;padding:12px 16px;font-weight:700;cursor:pointer}
-    .btn-primary{background:var(--green);color:#fff}
-    .btn-primary:disabled{opacity:.5;cursor:not-allowed}
-    .btn-outline{background:#fff;border:1px solid var(--gray)}
-    .select{width:100%;padding:10px 12px;border:1px solid var(--gray);border-radius:12px;background:#fff}
-    .time-input{width:auto;max-width:140px;flex:0 0 auto}
-    .footerbar{position:sticky;bottom:0;left:0;right:0;background:rgba(255,255,255,.9);backdrop-filter:blur(6px);border-top:1px solid var(--gray);padding:10px}
-    .flex{display:flex;align-items:center;gap:10px}
-    .grow{flex:1}
-    .green{color:var(--green-strong)}
-    .muted{color:var(--muted)}
-    .success{background:var(--green-weak);border:1px solid var(--green);color:var(--green-strong);padding:10px;border-radius:10px}
-    .danger{background:var(--red-weak);border:1px solid var(--red);color:#7f1d1d;padding:10px;border-radius:10px}
-    .section-title{font-weight:700;margin:6px 0 4px}
-    .small{font-size:12px}
-  </style>
-</head>
-<body>
-  <div class="container">
-    <!-- ヘッダ -->
-    <div class="card" style="margin-bottom:12px">
-      <div class="title">シフト希望入力 <span class="badge">ベータ</span></div>
-      <div id="profileBox" class="helper" style="margin-top:6px">LINEログイン前です</div>
-    </div>
-
-    <!-- スタッフ選択 -->
-    <div class="card" style="margin-bottom:12px">
-      <div class="section-title">スタッフ情報</div>
-
-      <div style="margin-bottom:10px">
-        <label class="helper" style="display:block;margin-bottom:4px">🏪 店舗フィルター</label>
-        <select id="storeSelect" class="select">
-          <option value="">全店舗</option>
-        </select>
+  <head>
+    <meta charset="utf-8" />
+    <title>シフト希望入力</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- LIFF SDK -->
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <style>
+      :root {
+        --green: #16a34a;
+        --green-weak: #dcfce7;
+        --green-strong: #0f7a37;
+        --red: #dc2626;
+        --red-weak: #fee2e2;
+        --gray: #e5e7eb;
+        --text: #111827;
+        --muted: #6b7280;
+        --card: #ffffff;
+        --bg: #f3f4f6;
+        --accent: #10b981;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+          'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Noto Sans JP',
+          'Yu Gothic UI', 'Yu Gothic', Meiryo, sans-serif;
+      }
+      .container {
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 16px;
+      }
+      .card {
+        background: var(--card);
+        border-radius: 14px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+        padding: 16px;
+      }
+      .title {
+        font-weight: 700;
+        font-size: 18px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .badge {
+        background: #e8f5ff;
+        color: #0369a1;
+        border-radius: 999px;
+        padding: 4px 10px;
+        font-size: 12px;
+      }
+      .row {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .pill {
+        cursor: pointer;
+        border-radius: 999px;
+        border: 1px solid var(--gray);
+        padding: 8px 14px;
+        font-weight: 600;
+      }
+      .pill.active-pt {
+        background: var(--green-weak);
+        border-color: var(--green);
+        color: var(--green-strong);
+      }
+      .pill.active-em {
+        background: var(--red-weak);
+        border-color: var(--red);
+        color: #7f1d1d;
+      }
+      .helper {
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.5;
+      }
+      .calendar {
+        margin-top: 12px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        gap: 6px;
+      }
+      .dow {
+        font-size: 12px;
+        color: var(--muted);
+        text-align: center;
+      }
+      .cell {
+        border: 1px solid var(--gray);
+        background: #fff;
+        border-radius: 12px;
+        aspect-ratio: 1/1.05;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        cursor: pointer;
+        user-select: none;
+        transition: transform 0.05s ease;
+        min-width: 0;
+        overflow: hidden;
+      }
+      .cell:active {
+        transform: scale(0.98);
+      }
+      .cell.disabled {
+        opacity: 0.35;
+        pointer-events: none;
+      }
+      .cell .d {
+        font-weight: 700;
+      }
+      .cell.pt-selected {
+        background: var(--green-weak);
+        border-color: var(--green);
+      }
+      .cell.pt-selected .label {
+        background: var(--green);
+        color: #fff;
+      }
+      .cell.em-selected {
+        background: var(--red-weak);
+        border-color: var(--red);
+      }
+      .label {
+        font-size: 9px;
+        padding: 2px 4px;
+        border-radius: 999px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
+      }
+      .toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin: 12px 0;
+      }
+      .btn {
+        appearance: none;
+        border: none;
+        border-radius: 12px;
+        padding: 12px 16px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      .btn-primary {
+        background: var(--green);
+        color: #fff;
+      }
+      .btn-primary:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      .btn-outline {
+        background: #fff;
+        border: 1px solid var(--gray);
+      }
+      .select {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid var(--gray);
+        border-radius: 12px;
+        background: #fff;
+      }
+      .time-input {
+        width: auto;
+        max-width: 140px;
+        flex: 0 0 auto;
+      }
+      .footerbar {
+        position: sticky;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(6px);
+        border-top: 1px solid var(--gray);
+        padding: 10px;
+      }
+      .flex {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .grow {
+        flex: 1;
+      }
+      .green {
+        color: var(--green-strong);
+      }
+      .muted {
+        color: var(--muted);
+      }
+      .success {
+        background: var(--green-weak);
+        border: 1px solid var(--green);
+        color: var(--green-strong);
+        padding: 10px;
+        border-radius: 10px;
+      }
+      .danger {
+        background: var(--red-weak);
+        border: 1px solid var(--red);
+        color: #7f1d1d;
+        padding: 10px;
+        border-radius: 10px;
+      }
+      .section-title {
+        font-weight: 700;
+        margin: 6px 0 4px;
+      }
+      .small {
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <!-- ヘッダ -->
+      <div class="card" style="margin-bottom: 12px">
+        <div class="title">
+          シフト希望入力 <span class="badge">ベータ</span>
+        </div>
+        <div id="profileBox" class="helper" style="margin-top: 6px">
+          LINEログイン前です
+        </div>
       </div>
 
-      <div style="margin-bottom:10px">
-        <label class="helper" style="display:block;margin-bottom:4px">👤 スタッフ選択</label>
-        <select id="staffSelect" class="select">
-          <option value="">選択してください</option>
-        </select>
+      <!-- スタッフ選択 -->
+      <div class="card" style="margin-bottom: 12px">
+        <div class="section-title">スタッフ情報</div>
+
+        <div style="margin-bottom: 10px">
+          <label class="helper" style="display: block; margin-bottom: 4px"
+            >🏪 店舗フィルター</label
+          >
+          <select id="storeSelect" class="select">
+            <option value="">全店舗</option>
+          </select>
+        </div>
+
+        <div style="margin-bottom: 10px">
+          <label class="helper" style="display: block; margin-bottom: 4px"
+            >👤 スタッフ選択</label
+          >
+          <select id="staffSelect" class="select">
+            <option value="">選択してください</option>
+          </select>
+        </div>
+
+        <div
+          id="staffInfo"
+          class="helper"
+          style="
+            display: none;
+            margin-top: 6px;
+            padding: 8px;
+            background: var(--green-weak);
+            border-radius: 8px;
+          "
+        >
+          <!-- スタッフ情報を表示 -->
+        </div>
       </div>
 
-      <div id="staffInfo" class="helper" style="display:none;margin-top:6px;padding:8px;background:var(--green-weak);border-radius:8px">
-        <!-- スタッフ情報を表示 -->
+      <!-- 役割選択（自動判定に変更） -->
+      <div class="card" style="margin-bottom: 12px">
+        <div class="section-title">入力タイプ</div>
+        <div
+          id="roleInfo"
+          class="helper"
+          style="padding: 8px; background: var(--gray); border-radius: 8px"
+        >
+          スタッフを選択すると、雇用形態に応じて自動設定されます
+        </div>
+        <div
+          id="deadlineInfo"
+          style="
+            padding: 8px;
+            margin-top: 8px;
+            background: #fff3cd;
+            border-radius: 8px;
+            display: none;
+          "
+        >
+          <!-- 締切情報がここに表示されます -->
+        </div>
       </div>
-    </div>
 
-    <!-- 役割選択（自動判定に変更） -->
-    <div class="card" style="margin-bottom:12px">
-      <div class="section-title">入力タイプ</div>
-      <div id="roleInfo" class="helper" style="padding:8px;background:var(--gray);border-radius:8px">
-        スタッフを選択すると、雇用形態に応じて自動設定されます
-      </div>
-      <div id="deadlineInfo" style="padding:8px;margin-top:8px;background:#fff3cd;border-radius:8px;display:none">
-        <!-- 締切情報がここに表示されます -->
-      </div>
-    </div>
+      <!-- 月選択＆パターン/時刻 -->
+      <div class="card" style="margin-bottom: 12px">
+        <div class="toolbar">
+          <div class="flex">
+            <button class="btn btn-outline" id="prevMonth">＜</button>
+            <div id="ymLabel" style="font-weight: 700"></div>
+            <button class="btn btn-outline" id="nextMonth">＞</button>
+          </div>
+          <select id="modeSelect" class="select" style="max-width: 220px">
+            <option value="pattern">
+              パターンで入力（早番/遅番/通し/どの時間帯でも可）
+            </option>
+            <option value="time">時刻で入力（自由入力）</option>
+          </select>
+        </div>
 
-    <!-- 月選択＆パターン/時刻 -->
-    <div class="card" style="margin-bottom:12px">
-      <div class="toolbar">
+        <!-- パターン選択 -->
+        <div id="patternBox">
+          <div class="section-title">パターン</div>
+          <div class="row" id="patternRow">
+            <!-- クリックで選択パターンを切替 -->
+          </div>
+          <div class="helper small">
+            選んだパターンが、カレンダーで新規選択した日に適用されます。
+          </div>
+        </div>
+
+        <!-- 時刻入力 -->
+        <div id="timeBox" style="display: none; margin-top: 10px">
+          <div class="section-title">時刻入力</div>
+          <div class="row">
+            <input
+              type="time"
+              id="startTime"
+              class="select time-input"
+              value="09:00"
+            />
+            <span class="helper" style="align-self: center">〜</span>
+            <input
+              type="time"
+              id="endTime"
+              class="select time-input"
+              value="18:00"
+            />
+          </div>
+          <div class="helper small">
+            指定した開始・終了時刻が、新規選択した日に適用されます（時間単位）。
+          </div>
+        </div>
+      </div>
+
+      <!-- カレンダー -->
+      <div class="card">
+        <div class="calendar">
+          <div class="grid" id="dowRow"></div>
+          <div class="grid" id="calGrid" style="margin-top: 6px"></div>
+        </div>
+        <div id="tipBox" class="helper" style="margin-top: 10px"></div>
+        <div
+          id="resultBox"
+          class="success"
+          style="display: none; margin-top: 10px"
+        ></div>
+        <div
+          id="blockBox"
+          class="danger"
+          style="display: none; margin-top: 10px"
+        ></div>
+      </div>
+
+      <!-- 送信バー -->
+      <div class="footerbar card" style="margin-top: 12px">
         <div class="flex">
-          <button class="btn btn-outline" id="prevMonth">＜</button>
-          <div id="ymLabel" style="font-weight:700"></div>
-          <button class="btn btn-outline" id="nextMonth">＞</button>
+          <div class="grow">
+            <div class="helper">
+              選択日数：<strong id="countLabel">0</strong> 日
+            </div>
+          </div>
+          <button id="submitBtn" class="btn btn-primary">送信する</button>
         </div>
-        <select id="modeSelect" class="select" style="max-width:220px">
-          <option value="pattern">パターンで入力（早番/遅番/通し/どの時間帯でも可）</option>
-          <option value="time">時刻で入力（自由入力）</option>
-        </select>
-      </div>
-
-      <!-- パターン選択 -->
-      <div id="patternBox">
-        <div class="section-title">パターン</div>
-        <div class="row" id="patternRow">
-          <!-- クリックで選択パターンを切替 -->
-        </div>
-        <div class="helper small">選んだパターンが、カレンダーで新規選択した日に適用されます。</div>
-      </div>
-
-      <!-- 時刻入力 -->
-      <div id="timeBox" style="display:none;margin-top:10px">
-        <div class="section-title">時刻入力</div>
-        <div class="row">
-          <input type="time" id="startTime" class="select time-input" value="09:00" />
-          <span class="helper" style="align-self:center">〜</span>
-          <input type="time" id="endTime" class="select time-input" value="18:00" />
-        </div>
-        <div class="helper small">指定した開始・終了時刻が、新規選択した日に適用されます（時間単位）。</div>
       </div>
     </div>
 
-    <!-- カレンダー -->
-    <div class="card">
-      <div class="calendar">
-        <div class="grid" id="dowRow"></div>
-        <div class="grid" id="calGrid" style="margin-top:6px"></div>
-      </div>
-      <div id="tipBox" class="helper" style="margin-top:10px"></div>
-      <div id="resultBox" class="success" style="display:none;margin-top:10px"></div>
-      <div id="blockBox" class="danger" style="display:none;margin-top:10px"></div>
-    </div>
+    <script>
+      // ====== 設定（あなたの値に変更） ======
 
-    <!-- 送信バー -->
-    <div class="footerbar card" style="margin-top:12px">
-      <div class="flex">
-        <div class="grow">
-          <div class="helper">選択日数：<strong id="countLabel">0</strong> 日</div>
-        </div>
-        <button id="submitBtn" class="btn btn-primary">送信する</button>
-      </div>
-    </div>
-  </div>
+      // 環境に応じてLIFF IDを自動切り替え
+      function getLiffId() {
+        const hostname = window.location.hostname;
 
-<script>
-  // ====== 設定（あなたの値に変更） ======
+        // ローカル開発環境
+        if (hostname === 'localhost' || hostname === '127.0.0.1') {
+          return '2008227932-M3lLVLVv'; // STG用LIFF ID
+        }
 
-  // 環境に応じてLIFF IDを自動切り替え
-  function getLiffId() {
-    const hostname = window.location.hostname;
+        // 本番環境（完全一致のみ）
+        if (hostname === 'shift-scheduler-ai-liff.vercel.app') {
+          return '2008227932-Rq9rJrJn'; // 本番用LIFF ID
+        }
 
-    // ローカル開発環境
-    if (hostname === 'localhost' || hostname === '127.0.0.1') {
-      return '2008227932-M3lLVLVv'; // STG用LIFF ID
-    }
-
-    // 本番環境（完全一致のみ）
-    if (hostname === 'shift-scheduler-ai-liff.vercel.app') {
-      return '2008227932-Rq9rJrJn'; // 本番用LIFF ID
-    }
-
-    // それ以外のVercelドメイン = STG環境（Preview/staging）
-    return '2008227932-M3lLVLVv'; // STG用LIFF ID
-  }
-
-  const LIFF_ID = getLiffId();
-
-  // 環境に応じてAPIベースURLを自動切り替え
-  function getApiBase() {
-    const hostname = window.location.hostname;
-
-    // ローカル開発環境
-    if (hostname === 'localhost' || hostname === '127.0.0.1') {
-      return 'http://localhost:3001';
-    }
-
-    // 本番環境（完全一致のみ）
-    if (hostname === 'shift-scheduler-ai-liff.vercel.app') {
-      return 'https://shift-scheduler-ai-production.up.railway.app';
-    }
-
-    // それ以外のVercelドメイン = STG環境（Preview/staging）
-    return 'https://shift-scheduler-ai-staging.up.railway.app';
-  }
-
-  const API_BASE = getApiBase();
-  const TENANT_ID = 3; // テナントID (Stand Banh Mi)
-
-  // デバッグ用: 環境情報をコンソールに表示
-  console.log('🌍 Environment:', window.location.hostname);
-  console.log('🔗 API Base URL:', API_BASE);
-  console.log('🆔 LIFF ID:', LIFF_ID);
-
-  // 締切チェック機能（テスト時はfalseに設定）
-  const ENABLE_DEADLINE_CHECK = true; // ← テスト時はfalseにする
-
-  // パターン → 時刻（必要に応じて後で編集可能）
-  const PATTERNS = [
-    {key:"早番", start:"09:00", end:"18:00"},
-    {key:"遅番", start:"13:00", end:"22:00"},
-    {key:"通し", start:"10:00", end:"20:00"},
-    {key:"どの時間帯でも可", start:"09:00", end:"22:00"},
-  ];
-
-  // ====== 状態 ======
-  let staffList = []; // スタッフリスト
-  let storeList = []; // 店舗リスト
-  let selectedStaff = null; // 選択中のスタッフ
-  let role = "part"; // "part"=アルバイト, "emp"=社員
-  let mode = "pattern"; // "pattern" or "time"
-  let cur = new Date(); cur.setDate(1); // 月の先頭
-  let selected = new Map(); // key=YYYY-MM-DD, val={type:'part'|'emp', start,end,label}
-  let currentPattern = PATTERNS[0];
-  let existingPreferenceId = null; // 既存のシフト希望ID
-  let employmentTypesMap = new Map(); // employment_code -> {employment_name, payment_type}
-  let firstPlanWorkDays = []; // 社員用: 第一案の出勤日リスト (YYYY-MM-DD形式)
-
-  // ====== 締切判定 ======
-  /**
-   * N月のシフト希望入力締切をチェック
-   * 締切: N-1月の10日23:59まで
-   * @param {number} year - 対象年
-   * @param {number} month - 対象月 (1-12)
-   * @returns {boolean} true=締切過ぎている, false=まだ入力可能
-   */
-  function isDeadlinePassed(year, month) {
-    // 締切チェックが無効の場合は常に入力可能
-    if (!ENABLE_DEADLINE_CHECK) {
-      return false;
-    }
-
-    const now = new Date();
-
-    // N月の締切 = N-1月の10日23:59
-    let deadlineYear = year;
-    let deadlineMonth = month - 1;
-
-    // 1月の場合は前年12月が締切月
-    if (deadlineMonth === 0) {
-      deadlineYear--;
-      deadlineMonth = 12;
-    }
-
-    // 締切日時: N-1月10日23:59:59
-    const deadline = new Date(deadlineYear, deadlineMonth - 1, 10, 23, 59, 59);
-
-    return now > deadline;
-  }
-
-  // ====== スタッフと店舗データ読み込み ======
-  async function loadStaffAndStores() {
-    try {
-      const [staffRes, storeRes] = await Promise.all([
-        fetch(`${API_BASE}/api/master/staff?tenant_id=${TENANT_ID}`),
-        fetch(`${API_BASE}/api/master/stores?tenant_id=${TENANT_ID}`)
-      ]);
-
-      const staffData = await staffRes.json();
-      const storeData = await storeRes.json();
-
-      if (staffData.success) {
-        staffList = staffData.data.filter(s => s.is_active);
-        populateStaffSelect();
+        // それ以外のVercelドメイン = STG環境（Preview/staging）
+        return '2008227932-M3lLVLVv'; // STG用LIFF ID
       }
 
-      if (storeData.success) {
-        storeList = storeData.data;
-        populateStoreSelect();
+      const LIFF_ID = getLiffId();
+
+      // 環境に応じてAPIベースURLを自動切り替え
+      function getApiBase() {
+        const hostname = window.location.hostname;
+
+        // ローカル開発環境
+        if (hostname === 'localhost' || hostname === '127.0.0.1') {
+          return 'http://localhost:3001';
+        }
+
+        // 本番環境（完全一致のみ）
+        if (hostname === 'shift-scheduler-ai-liff.vercel.app') {
+          return 'https://shift-scheduler-ai-production.up.railway.app';
+        }
+
+        // それ以外のVercelドメイン = STG環境（Preview/staging）
+        return 'https://shift-scheduler-ai-staging.up.railway.app';
       }
-    } catch (error) {
-      console.error('データ読み込みエラー:', error);
-      alert('スタッフ・店舗データの読み込みに失敗しました');
-    }
-  }
 
-  // ====== 雇用形態マスタ読み込み ======
-  async function loadEmploymentTypes() {
-    try {
-      const res = await fetch(`${API_BASE}/api/master/employment-types?tenant_id=${TENANT_ID}`);
-      const data = await res.json();
+      const API_BASE = getApiBase();
+      const TENANT_ID = 3; // テナントID (Stand Banh Mi)
 
-      if (data.success) {
-        data.data.forEach(empType => {
-          employmentTypesMap.set(empType.employment_code, {
-            employment_name: empType.employment_name,
-            payment_type: empType.payment_type
-          });
+      // デバッグ用: 環境情報をコンソールに表示
+      console.log('🌍 Environment:', window.location.hostname);
+      console.log('🔗 API Base URL:', API_BASE);
+      console.log('🆔 LIFF ID:', LIFF_ID);
+
+      // 締切チェック機能（テスト時はfalseに設定）
+      const ENABLE_DEADLINE_CHECK = true; // ← テスト時はfalseにする
+
+      // パターン → 時刻（必要に応じて後で編集可能）
+      const PATTERNS = [
+        { key: '早番', start: '09:00', end: '18:00' },
+        { key: '遅番', start: '13:00', end: '22:00' },
+        { key: '通し', start: '10:00', end: '20:00' },
+        { key: 'どの時間帯でも可', start: '09:00', end: '22:00' },
+      ];
+
+      // ====== 状態 ======
+      let staffList = []; // スタッフリスト
+      let storeList = []; // 店舗リスト
+      let selectedStaff = null; // 選択中のスタッフ
+      let role = 'part'; // "part"=アルバイト, "emp"=社員
+      let mode = 'pattern'; // "pattern" or "time"
+      let cur = new Date();
+      cur.setDate(1); // 月の先頭
+      let selected = new Map(); // key=YYYY-MM-DD, val={type:'part'|'emp', start,end,label}
+      let currentPattern = PATTERNS[0];
+      let existingPreferenceId = null; // 既存のシフト希望ID
+      let employmentTypesMap = new Map(); // employment_code -> {employment_name, payment_type}
+      let firstPlanWorkDays = []; // 社員用: 第一案の出勤日リスト (YYYY-MM-DD形式)
+
+      // ====== 締切判定 ======
+      /**
+       * N月のシフト希望入力締切をチェック
+       * 締切: N-1月の10日23:59まで
+       * @param {number} year - 対象年
+       * @param {number} month - 対象月 (1-12)
+       * @returns {boolean} true=締切過ぎている, false=まだ入力可能
+       */
+      function isDeadlinePassed(year, month) {
+        // 締切チェックが無効の場合は常に入力可能
+        if (!ENABLE_DEADLINE_CHECK) {
+          return false;
+        }
+
+        const now = new Date();
+
+        // N月の締切 = N-1月の10日23:59
+        let deadlineYear = year;
+        let deadlineMonth = month - 1;
+
+        // 1月の場合は前年12月が締切月
+        if (deadlineMonth === 0) {
+          deadlineYear--;
+          deadlineMonth = 12;
+        }
+
+        // 締切日時: N-1月10日23:59:59
+        const deadline = new Date(
+          deadlineYear,
+          deadlineMonth - 1,
+          10,
+          23,
+          59,
+          59
+        );
+
+        return now > deadline;
+      }
+
+      // ====== スタッフと店舗データ読み込み ======
+      async function loadStaffAndStores() {
+        try {
+          const [staffRes, storeRes] = await Promise.all([
+            fetch(`${API_BASE}/api/master/staff?tenant_id=${TENANT_ID}`),
+            fetch(`${API_BASE}/api/master/stores?tenant_id=${TENANT_ID}`),
+          ]);
+
+          const staffData = await staffRes.json();
+          const storeData = await storeRes.json();
+
+          if (staffData.success) {
+            staffList = staffData.data.filter(s => s.is_active);
+            populateStaffSelect();
+          }
+
+          if (storeData.success) {
+            storeList = storeData.data;
+            populateStoreSelect();
+          }
+        } catch (error) {
+          console.error('データ読み込みエラー:', error);
+          alert('スタッフ・店舗データの読み込みに失敗しました');
+        }
+      }
+
+      // ====== 雇用形態マスタ読み込み ======
+      async function loadEmploymentTypes() {
+        try {
+          const res = await fetch(
+            `${API_BASE}/api/master/employment-types?tenant_id=${TENANT_ID}`
+          );
+          const data = await res.json();
+
+          if (data.success) {
+            data.data.forEach(empType => {
+              employmentTypesMap.set(empType.employment_code, {
+                employment_name: empType.employment_name,
+                payment_type: empType.payment_type,
+              });
+            });
+          }
+        } catch (error) {
+          console.error('雇用形態マスタ読み込みエラー:', error);
+        }
+      }
+
+      // ====== 雇用形態から役割を判定 ======
+      function determineRoleFromEmploymentType(employmentTypeCode) {
+        const empType = employmentTypesMap.get(employmentTypeCode);
+        if (!empType) {
+          // デフォルトは従来のロジック（念のため）
+          return employmentTypeCode === 'PART_TIME' ||
+            employmentTypeCode === 'PART'
+            ? 'part'
+            : 'emp';
+        }
+        // payment_typeで判定: HOURLYならアルバイト、それ以外（MONTHLYなど）は社員
+        return empType.payment_type === 'HOURLY' ? 'part' : 'emp';
+      }
+
+      // ====== 第1案データ取得（社員のみ） ======
+      async function loadFirstPlanIfEmployee() {
+        if (role !== 'emp' || !selectedStaff) {
+          firstPlanWorkDays = [];
+          return;
+        }
+
+        const year = cur.getFullYear();
+        const month = cur.getMonth() + 1;
+
+        try {
+          const firstPlanRes = await fetch(
+            `${API_BASE}/api/shifts/?tenant_id=${TENANT_ID}&store_id=${selectedStaff.store_id}&staff_id=${selectedStaff.staff_id}&year=${year}&month=${month}&plan_type=FIRST`
+          );
+          const firstPlanData = await firstPlanRes.json();
+
+          if (!firstPlanData.success || firstPlanData.count === 0) {
+            // 第一案が未作成の場合、出勤日リストを空にする
+            firstPlanWorkDays = [];
+            console.warn(`${year}年${month}月の第1案が未作成です`);
+          } else {
+            // 出勤日リストを作成
+            firstPlanWorkDays = firstPlanData.data.map(
+              shift => shift.shift_date
+            );
+            console.log(
+              `${year}年${month}月の第1案: ${firstPlanWorkDays.length}日`
+            );
+          }
+        } catch (error) {
+          console.error('第一案取得エラー:', error);
+          firstPlanWorkDays = [];
+        }
+
+        // UIを更新
+        updateRoleInfo();
+      }
+
+      // ====== 店舗セレクトボックス生成 ======
+      function populateStoreSelect() {
+        const select = document.getElementById('storeSelect');
+        storeList.forEach(store => {
+          const option = document.createElement('option');
+          option.value = store.store_id;
+          option.textContent = store.store_name;
+          select.appendChild(option);
         });
       }
-    } catch (error) {
-      console.error('雇用形態マスタ読み込みエラー:', error);
-    }
-  }
 
-  // ====== 雇用形態から役割を判定 ======
-  function determineRoleFromEmploymentType(employmentTypeCode) {
-    const empType = employmentTypesMap.get(employmentTypeCode);
-    if (!empType) {
-      // デフォルトは従来のロジック（念のため）
-      return (employmentTypeCode === 'PART_TIME' || employmentTypeCode === 'PART') ? 'part' : 'emp';
-    }
-    // payment_typeで判定: HOURLYならアルバイト、それ以外（MONTHLYなど）は社員
-    return empType.payment_type === 'HOURLY' ? 'part' : 'emp';
-  }
+      // ====== スタッフセレクトボックス生成 ======
+      function populateStaffSelect(storeId = null) {
+        const select = document.getElementById('staffSelect');
+        select.innerHTML = '<option value="">選択してください</option>';
 
-  // ====== 第1案データ取得（社員のみ） ======
-  async function loadFirstPlanIfEmployee() {
-    if (role !== 'emp' || !selectedStaff) {
-      firstPlanWorkDays = [];
-      return;
-    }
+        const filteredStaff = storeId
+          ? staffList.filter(s => s.store_id == storeId)
+          : staffList;
 
-    const year = cur.getFullYear();
-    const month = cur.getMonth() + 1;
+        filteredStaff.forEach(staff => {
+          const option = document.createElement('option');
+          option.value = staff.staff_id;
+          option.dataset.staff = JSON.stringify(staff);
+          option.textContent = `${staff.name} (${staff.staff_code}) - ${staff.store_name}`;
+          select.appendChild(option);
+        });
 
-    try {
-      const firstPlanRes = await fetch(
-        `${API_BASE}/api/shifts/?tenant_id=${TENANT_ID}&store_id=${selectedStaff.store_id}&staff_id=${selectedStaff.staff_id}&year=${year}&month=${month}&plan_type=FIRST`
-      );
-      const firstPlanData = await firstPlanRes.json();
-
-      if (!firstPlanData.success || firstPlanData.count === 0) {
-        // 第一案が未作成の場合、出勤日リストを空にする
-        firstPlanWorkDays = [];
-        console.warn(`${year}年${month}月の第1案が未作成です`);
-      } else {
-        // 出勤日リストを作成
-        firstPlanWorkDays = firstPlanData.data.map(shift => shift.shift_date);
-        console.log(`${year}年${month}月の第1案: ${firstPlanWorkDays.length}日`);
+        // 最初のスタッフを自動選択
+        if (filteredStaff.length > 0) {
+          select.value = filteredStaff[0].staff_id;
+          handleStaffChange();
+        }
       }
-    } catch (error) {
-      console.error('第一案取得エラー:', error);
-      firstPlanWorkDays = [];
-    }
 
-    // UIを更新
-    updateRoleInfo();
-  }
+      // ====== スタッフ選択時の処理 ======
+      async function handleStaffChange() {
+        const select = document.getElementById('staffSelect');
+        const staffId = parseInt(select.value);
 
-  // ====== 店舗セレクトボックス生成 ======
-  function populateStoreSelect() {
-    const select = document.getElementById('storeSelect');
-    storeList.forEach(store => {
-      const option = document.createElement('option');
-      option.value = store.store_id;
-      option.textContent = store.store_name;
-      select.appendChild(option);
-    });
-  }
-
-  // ====== スタッフセレクトボックス生成 ======
-  function populateStaffSelect(storeId = null) {
-    const select = document.getElementById('staffSelect');
-    select.innerHTML = '<option value="">選択してください</option>';
-
-    const filteredStaff = storeId
-      ? staffList.filter(s => s.store_id == storeId)
-      : staffList;
-
-    filteredStaff.forEach(staff => {
-      const option = document.createElement('option');
-      option.value = staff.staff_id;
-      option.dataset.staff = JSON.stringify(staff);
-      option.textContent = `${staff.name} (${staff.staff_code}) - ${staff.store_name}`;
-      select.appendChild(option);
-    });
-
-    // 最初のスタッフを自動選択
-    if (filteredStaff.length > 0) {
-      select.value = filteredStaff[0].staff_id;
-      handleStaffChange();
-    }
-  }
-
-  // ====== スタッフ選択時の処理 ======
-  async function handleStaffChange() {
-    const select = document.getElementById('staffSelect');
-    const staffId = parseInt(select.value);
-
-    if (!staffId) {
-      selectedStaff = null;
-      document.getElementById('staffInfo').style.display = 'none';
-      document.getElementById('roleInfo').innerHTML = 'スタッフを選択すると、雇用形態に応じて自動設定されます';
-      return;
-    }
-
-    const selectedOption = select.options[select.selectedIndex];
-    selectedStaff = JSON.parse(selectedOption.dataset.staff);
-
-    // 雇用形態により役割を自動設定（payment_typeベース）
-    const employmentType = selectedStaff.employment_type;
-    role = determineRoleFromEmploymentType(employmentType);
-
-    // 社員の場合、第一案データを取得
-    await loadFirstPlanIfEmployee();
-
-    // スタッフ情報表示
-    const staffInfo = document.getElementById('staffInfo');
-    const inputTypeText = (role === 'part') ? 'アルバイト' : '社員';
-    staffInfo.style.display = 'block';
-    staffInfo.innerHTML = `
-      <strong>選択中:</strong> ${selectedStaff.name} さん<br>
-      <strong>シフト入力方式:</strong> ${inputTypeText}
-    `;
-
-    // 既存のシフト希望を読み込み
-    selected.clear();
-    await loadExistingPreferences();
-    renderCal();
-    refreshTips();
-  }
-
-  // ====== 既存シフト希望読み込み ======
-  async function loadExistingPreferences() {
-    if (!selectedStaff) return;
-
-    try {
-      const year = cur.getFullYear();
-      const month = cur.getMonth() + 1;
-      const url = `${API_BASE}/api/shifts/preferences?tenant_id=${TENANT_ID}&staff_id=${selectedStaff.staff_id}&year=${year}&month=${month}`;
-      const res = await fetch(url);
-      const data = await res.json();
-
-      if (data.success && data.data && data.data.length > 0) {
-        const pref = data.data[0];
-        existingPreferenceId = pref.preference_id;
-
-        // 日付を復元
-        const dateStr = role === 'part' ? pref.preferred_days : pref.ng_days;
-        if (dateStr) {
-          dateStr.split(',').forEach(d => {
-            const day = parseInt(d.trim().split('-')[2]);
-            if (day >= 1 && day <= 31) {
-              // 仮のパターンで登録（実際のパターンはAPIに保存されていないため）
-              selected.set(ymd(new Date(year, month - 1, day)), {
-                type: role,
-                start: PATTERNS[0].start,
-                end: PATTERNS[0].end,
-                label: role === 'part' ? PATTERNS[0].key : '休み'
-              });
-            }
-          });
+        if (!staffId) {
+          selectedStaff = null;
+          document.getElementById('staffInfo').style.display = 'none';
+          document.getElementById('roleInfo').innerHTML =
+            'スタッフを選択すると、雇用形態に応じて自動設定されます';
+          return;
         }
 
-        document.getElementById('resultBox').style.display = 'block';
-        document.getElementById('resultBox').textContent = '既存のシフト希望が読み込まれました（更新モード）';
-      } else {
-        existingPreferenceId = null;
-        document.getElementById('resultBox').style.display = 'none';
-      }
-    } catch (error) {
-      console.error('シフト希望読み込みエラー:', error);
-    }
-  }
+        const selectedOption = select.options[select.selectedIndex];
+        selectedStaff = JSON.parse(selectedOption.dataset.staff);
 
-  // ====== 店舗フィルター変更 ======
-  document.getElementById('storeSelect').addEventListener('change', (e) => {
-    const storeId = e.target.value || null;
-    populateStaffSelect(storeId);
-  });
-
-  // ====== スタッフ選択変更 ======
-  document.getElementById('staffSelect').addEventListener('change', handleStaffChange);
-
-  // ====== LIFF ======
-  async function initLIFF(){
-    await liff.init({ liffId: LIFF_ID });
-
-    // 雇用形態マスタを先に読み込み（役割判定に必要）
-    await loadEmploymentTypes();
-
-    if(!liff.isLoggedIn()){
-      // ログイン前はシフト入力UI全体を非表示
-      const cards = document.querySelectorAll('.card');
-      cards.forEach((card, index) => {
-        if (index > 0) { // 最初のカード（ヘッダー）以外を非表示
-          card.style.display = 'none';
-        }
-      });
-      document.querySelector('.footerbar').style.display = 'none';
-
-      document.getElementById("profileBox").innerHTML =
-        `LINEログインが必要です。<button class="btn btn-primary" onclick="liff.login()">ログイン</button>`;
-      return;
-    }
-    const p = await liff.getProfile();
-    const idt = liff.getIDToken();
-    window._login = {name:p.displayName, userId:p.userId, idToken:idt};
-    document.getElementById("profileBox").textContent =
-      `${p.displayName} さんとしてログイン中`;
-
-    // LINE連携状態をチェック
-    await checkLineLink();
-  }
-
-  // ====== LINE連携チェック ======
-  async function checkLineLink() {
-    try {
-      const res = await fetch(`${API_BASE}/api/liff/check-link`, {
-        headers: {
-          'Authorization': `Bearer ${window._login.idToken}`
-        }
-      });
-      const data = await res.json();
-
-      if (data.success && data.linked) {
-        // 連携済み：通常のシフト入力画面を表示
-        selectedStaff = {
-          staff_id: data.data.staff_id,
-          name: data.data.staff_name,
-          store_id: data.data.store_id,
-          store_name: data.data.store_name,
-          employment_type: data.data.employment_type
-        };
-        role = determineRoleFromEmploymentType(data.data.employment_type);
+        // 雇用形態により役割を自動設定（payment_typeベース）
+        const employmentType = selectedStaff.employment_type;
+        role = determineRoleFromEmploymentType(employmentType);
 
         // 社員の場合、第一案データを取得
         await loadFirstPlanIfEmployee();
 
-        // スタッフ情報を表示（セレクトボックスは非表示）
-        document.getElementById('storeSelect').parentElement.style.display = 'none';
-        document.getElementById('staffSelect').parentElement.style.display = 'none';
+        // スタッフ情報表示
+        const staffInfo = document.getElementById('staffInfo');
+        const inputTypeText = role === 'part' ? 'アルバイト' : '社員';
+        staffInfo.style.display = 'block';
+        staffInfo.innerHTML = `
+      <strong>選択中:</strong> ${selectedStaff.name} さん<br>
+      <strong>シフト入力方式:</strong> ${inputTypeText}
+    `;
 
-        // 登録済みスタッフ情報を表示
-        const inputTypeText = (role === 'part') ? 'アルバイト' : '社員';
-        document.getElementById('staffInfo').style.display = 'block';
-        document.getElementById('staffInfo').innerHTML = `
+        // 既存のシフト希望を読み込み
+        selected.clear();
+        await loadExistingPreferences();
+        renderCal();
+        refreshTips();
+      }
+
+      // ====== 既存シフト希望読み込み ======
+      async function loadExistingPreferences() {
+        if (!selectedStaff) return;
+
+        try {
+          const year = cur.getFullYear();
+          const month = cur.getMonth() + 1;
+          const url = `${API_BASE}/api/shifts/preferences?tenant_id=${TENANT_ID}&staff_id=${selectedStaff.staff_id}&year=${year}&month=${month}`;
+          const res = await fetch(url);
+          const data = await res.json();
+
+          if (data.success && data.data && data.data.length > 0) {
+            const pref = data.data[0];
+            existingPreferenceId = pref.preference_id;
+
+            // 日付を復元
+            const dateStr =
+              role === 'part' ? pref.preferred_days : pref.ng_days;
+            if (dateStr) {
+              dateStr.split(',').forEach(d => {
+                const day = parseInt(d.trim().split('-')[2]);
+                if (day >= 1 && day <= 31) {
+                  // 仮のパターンで登録（実際のパターンはAPIに保存されていないため）
+                  selected.set(ymd(new Date(year, month - 1, day)), {
+                    type: role,
+                    start: PATTERNS[0].start,
+                    end: PATTERNS[0].end,
+                    label: role === 'part' ? PATTERNS[0].key : '休み',
+                  });
+                }
+              });
+            }
+
+            document.getElementById('resultBox').style.display = 'block';
+            document.getElementById('resultBox').textContent =
+              '既存のシフト希望が読み込まれました（更新モード）';
+          } else {
+            existingPreferenceId = null;
+            document.getElementById('resultBox').style.display = 'none';
+          }
+        } catch (error) {
+          console.error('シフト希望読み込みエラー:', error);
+        }
+      }
+
+      // ====== 店舗フィルター変更 ======
+      document.getElementById('storeSelect').addEventListener('change', e => {
+        const storeId = e.target.value || null;
+        populateStaffSelect(storeId);
+      });
+
+      // ====== スタッフ選択変更 ======
+      document
+        .getElementById('staffSelect')
+        .addEventListener('change', handleStaffChange);
+
+      // ====== LIFF ======
+      async function initLIFF() {
+        await liff.init({ liffId: LIFF_ID });
+
+        // 雇用形態マスタを先に読み込み（役割判定に必要）
+        await loadEmploymentTypes();
+
+        if (!liff.isLoggedIn()) {
+          // ログイン前はシフト入力UI全体を非表示
+          const cards = document.querySelectorAll('.card');
+          cards.forEach((card, index) => {
+            if (index > 0) {
+              // 最初のカード（ヘッダー）以外を非表示
+              card.style.display = 'none';
+            }
+          });
+          document.querySelector('.footerbar').style.display = 'none';
+
+          document.getElementById('profileBox').innerHTML =
+            `LINEログインが必要です。<button class="btn btn-primary" onclick="liff.login()">ログイン</button>`;
+          return;
+        }
+        const p = await liff.getProfile();
+        const idt = liff.getIDToken();
+        window._login = { name: p.displayName, userId: p.userId, idToken: idt };
+        document.getElementById('profileBox').textContent =
+          `${p.displayName} さんとしてログイン中`;
+
+        // LINE連携状態をチェック
+        await checkLineLink();
+      }
+
+      // ====== LINE連携チェック ======
+      async function checkLineLink() {
+        try {
+          const res = await fetch(`${API_BASE}/api/liff/check-link`, {
+            headers: {
+              Authorization: `Bearer ${window._login.idToken}`,
+            },
+          });
+          const data = await res.json();
+
+          if (data.success && data.linked) {
+            // 連携済み：通常のシフト入力画面を表示
+            selectedStaff = {
+              staff_id: data.data.staff_id,
+              name: data.data.staff_name,
+              store_id: data.data.store_id,
+              store_name: data.data.store_name,
+              employment_type: data.data.employment_type,
+            };
+            role = determineRoleFromEmploymentType(data.data.employment_type);
+
+            // 社員の場合、第一案データを取得
+            await loadFirstPlanIfEmployee();
+
+            // スタッフ情報を表示（セレクトボックスは非表示）
+            document.getElementById('storeSelect').parentElement.style.display =
+              'none';
+            document.getElementById('staffSelect').parentElement.style.display =
+              'none';
+
+            // 登録済みスタッフ情報を表示
+            const inputTypeText = role === 'part' ? 'アルバイト' : '社員';
+            document.getElementById('staffInfo').style.display = 'block';
+            document.getElementById('staffInfo').innerHTML = `
           <strong>🏪 店舗:</strong> ${selectedStaff.store_name}<br>
           <strong>👤 スタッフ:</strong> ${selectedStaff.name} さん<br>
           <strong>📝 シフト入力方式:</strong> ${inputTypeText}
         `;
 
-        document.getElementById("profileBox").innerHTML =
-          `${window._login.name} さん（${selectedStaff.name} - ${selectedStaff.store_name}）としてログイン中`;
+            document.getElementById('profileBox').innerHTML =
+              `${window._login.name} さん（${selectedStaff.name} - ${selectedStaff.store_name}）としてログイン中`;
 
-        // 入力タイプ情報表示
-        updateRoleInfo();
+            // 入力タイプ情報表示
+            updateRoleInfo();
 
-        // 既存のシフト希望を読み込み
-        await loadExistingPreferences();
-        renderCal();
-        refreshTips();
-      } else {
-        // 未連携：スタッフ登録画面を表示
-        showStaffRegistration();
+            // 既存のシフト希望を読み込み
+            await loadExistingPreferences();
+            renderCal();
+            refreshTips();
+          } else {
+            // 未連携：スタッフ登録画面を表示
+            showStaffRegistration();
+          }
+        } catch (error) {
+          console.error('LINE連携チェックエラー:', error);
+          alert('LINE連携状態の確認に失敗しました');
+        }
       }
-    } catch (error) {
-      console.error('LINE連携チェックエラー:', error);
-      alert('LINE連携状態の確認に失敗しました');
-    }
-  }
 
-  // ====== 入力タイプ情報更新 ======
-  function updateRoleInfo() {
-    const roleInfo = document.getElementById('roleInfo');
-    const modeSelect = document.getElementById('modeSelect');
-    const patternBox = document.getElementById('patternBox');
-    const timeBox = document.getElementById('timeBox');
+      // ====== 入力タイプ情報更新 ======
+      function updateRoleInfo() {
+        const roleInfo = document.getElementById('roleInfo');
+        const modeSelect = document.getElementById('modeSelect');
+        const patternBox = document.getElementById('patternBox');
+        const timeBox = document.getElementById('timeBox');
 
-    if (role === 'part') {
-      // アルバイトの場合
-      roleInfo.style.background = 'var(--green-weak)';
-      roleInfo.innerHTML = `
+        if (role === 'part') {
+          // アルバイトの場合
+          roleInfo.style.background = 'var(--green-weak)';
+          roleInfo.innerHTML = `
         <strong style="color:var(--green-strong)">✅ アルバイト</strong><br>
         出勤できる日を<strong class="green">緑</strong>で選択し、パターン or 時刻を指定してください
       `;
-      // パターン/時刻選択を表示
-      if (modeSelect) modeSelect.style.display = 'block';
-      if (patternBox) patternBox.style.display = 'block';
-    } else {
-      // 社員の場合
-      if (firstPlanWorkDays.length === 0) {
-        // 第1案未作成
-        roleInfo.style.background = '#fff3cd';
-        roleInfo.innerHTML = `
+          // パターン/時刻選択を表示
+          if (modeSelect) modeSelect.style.display = 'block';
+          if (patternBox) patternBox.style.display = 'block';
+        } else {
+          // 社員の場合
+          if (firstPlanWorkDays.length === 0) {
+            // 第1案未作成
+            roleInfo.style.background = '#fff3cd';
+            roleInfo.innerHTML = `
           <strong style="color:#856404">⚠️ 社員</strong><br>
           第1案が未作成です。管理者にお問い合わせください。
         `;
-      } else {
-        // 第1案あり
-        roleInfo.style.background = 'var(--red-weak)';
-        roleInfo.innerHTML = `
+          } else {
+            // 第1案あり
+            roleInfo.style.background = 'var(--red-weak)';
+            roleInfo.innerHTML = `
           <strong style="color:#b91c1c">🚫 社員</strong><br>
           第1案の出勤日から、休みたい日を<strong style="color:#b91c1c">赤</strong>で選択してください
         `;
+          }
+          // 社員の場合は常にパターン/時刻選択を非表示
+          if (modeSelect) modeSelect.style.display = 'none';
+          if (patternBox) patternBox.style.display = 'none';
+          if (timeBox) timeBox.style.display = 'none';
+        }
       }
-      // 社員の場合は常にパターン/時刻選択を非表示
-      if (modeSelect) modeSelect.style.display = 'none';
-      if (patternBox) patternBox.style.display = 'none';
-      if (timeBox) timeBox.style.display = 'none';
-    }
-  }
 
-  // ====== スタッフ登録画面表示 ======
-  function showStaffRegistration() {
-    // 既存のUI要素を非表示
-    document.querySelectorAll('.card').forEach(card => {
-      if (!card.querySelector('#profileBox')) {
-        card.style.display = 'none';
-      }
-    });
-    document.querySelector('.footerbar').style.display = 'none';
+      // ====== スタッフ登録画面表示 ======
+      function showStaffRegistration() {
+        // 既存のUI要素を非表示
+        document.querySelectorAll('.card').forEach(card => {
+          if (!card.querySelector('#profileBox')) {
+            card.style.display = 'none';
+          }
+        });
+        document.querySelector('.footerbar').style.display = 'none';
 
-    // 登録フォームを表示
-    const container = document.querySelector('.container');
-    const registrationCard = document.createElement('div');
-    registrationCard.className = 'card';
-    registrationCard.style.marginTop = '12px';
-    registrationCard.innerHTML = `
+        // 登録フォームを表示
+        const container = document.querySelector('.container');
+        const registrationCard = document.createElement('div');
+        registrationCard.className = 'card';
+        registrationCard.style.marginTop = '12px';
+        registrationCard.innerHTML = `
       <div class="title">スタッフ情報登録</div>
       <div class="helper" style="margin:10px 0">
         初めてご利用の方は、スタッフ情報を登録してください
@@ -667,521 +922,550 @@
 
       <button id="regSubmitBtn" class="btn btn-primary" style="width:100%;margin-top:10px">登録する</button>
     `;
-    container.appendChild(registrationCard);
+        container.appendChild(registrationCard);
 
-    // 店舗リスト、役職リスト、雇用形態リストを取得して表示
-    loadStoresForRegistration();
-    loadRolesForRegistration();
-    loadEmploymentTypesForRegistration();
+        // 店舗リスト、役職リスト、雇用形態リストを取得して表示
+        loadStoresForRegistration();
+        loadRolesForRegistration();
+        loadEmploymentTypesForRegistration();
 
-    // 登録ボタンのイベント
-    document.getElementById('regSubmitBtn').onclick = handleStaffRegistration;
-  }
-
-  // ====== 店舗リスト取得（登録用） ======
-  async function loadStoresForRegistration() {
-    try {
-      const res = await fetch(`${API_BASE}/api/master/stores?tenant_id=${TENANT_ID}`);
-      const data = await res.json();
-
-      if (data.success) {
-        const select = document.getElementById('regStoreSelect');
-        select.innerHTML = '<option value="">選択してください</option>';
-        data.data.forEach(store => {
-          const option = document.createElement('option');
-          option.value = store.store_id;
-          option.textContent = store.store_name;
-          select.appendChild(option);
-        });
-      }
-    } catch (error) {
-      console.error('店舗リスト取得エラー:', error);
-    }
-  }
-
-  // ====== 役職リスト取得（登録用） ======
-  async function loadRolesForRegistration() {
-    try {
-      const res = await fetch(`${API_BASE}/api/master/roles?tenant_id=${TENANT_ID}`);
-      const data = await res.json();
-
-      if (data.success) {
-        const select = document.getElementById('regRole');
-        select.innerHTML = '<option value="">選択してください</option>';
-        data.data.forEach(role => {
-          const option = document.createElement('option');
-          option.value = role.role_id;
-          option.textContent = role.role_name;
-          select.appendChild(option);
-        });
-      }
-    } catch (error) {
-      console.error('役職リスト取得エラー:', error);
-    }
-  }
-
-  // ====== 雇用形態リスト取得（登録用） ======
-  async function loadEmploymentTypesForRegistration() {
-    try {
-      // キャッシュが空の場合は先に読み込み
-      if (employmentTypesMap.size === 0) {
-        await loadEmploymentTypes();
+        // 登録ボタンのイベント
+        document.getElementById('regSubmitBtn').onclick =
+          handleStaffRegistration;
       }
 
-      const select = document.getElementById('regEmploymentType');
-      select.innerHTML = '<option value="">選択してください</option>';
+      // ====== 店舗リスト取得（登録用） ======
+      async function loadStoresForRegistration() {
+        try {
+          const res = await fetch(
+            `${API_BASE}/api/master/stores?tenant_id=${TENANT_ID}`
+          );
+          const data = await res.json();
 
-      // キャッシュからドロップダウンを生成
-      employmentTypesMap.forEach((empTypeData, employmentCode) => {
-        const option = document.createElement('option');
-        option.value = employmentCode;
-        option.textContent = empTypeData.employment_name;
-        // payment_typeをdata属性に保存（後でシフト入力タイプ判定に使用）
-        option.setAttribute('data-payment-type', empTypeData.payment_type);
-        select.appendChild(option);
-      });
-    } catch (error) {
-      console.error('雇用形態リスト取得エラー:', error);
-    }
-  }
-
-  // ====== スタッフ登録処理 ======
-  async function handleStaffRegistration() {
-    const storeId = document.getElementById('regStoreSelect').value;
-    const roleId = document.getElementById('regRole').value;
-    const name = document.getElementById('regName').value;
-    const staffCode = document.getElementById('regStaffCode').value;
-    const employmentType = document.getElementById('regEmploymentType').value;
-    const email = document.getElementById('regEmail').value;
-    const phone = document.getElementById('regPhone').value;
-
-    // バリデーション
-    if (!storeId || !roleId || !name || !staffCode || !employmentType) {
-      alert('必須項目を入力してください');
-      return;
-    }
-
-    const regResult = document.getElementById('regResult');
-    const regSubmitBtn = document.getElementById('regSubmitBtn');
-
-    regSubmitBtn.disabled = true;
-    regSubmitBtn.textContent = '登録中...';
-
-    try {
-      const res = await fetch(`${API_BASE}/api/liff/register-staff`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${window._login.idToken}`
-        },
-        body: JSON.stringify({
-          tenant_id: TENANT_ID,
-          store_id: parseInt(storeId),
-          role_id: parseInt(roleId),
-          name: name,
-          staff_code: staffCode,
-          employment_type: employmentType,
-          email: email || null,
-          phone_number: phone || null
-        })
-      });
-
-      const data = await res.json();
-
-      if (data.success) {
-        regResult.style.display = 'block';
-        regResult.className = 'success';
-        regResult.textContent = '✅ 登録が完了しました！画面を再読み込みします...';
-
-        // 2秒後にリロード
-        setTimeout(() => {
-          location.reload();
-        }, 2000);
-      } else {
-        regResult.style.display = 'block';
-        regResult.className = 'danger';
-        regResult.textContent = `❌ ${data.error}`;
-        regSubmitBtn.disabled = false;
-        regSubmitBtn.textContent = '登録する';
-      }
-    } catch (error) {
-      console.error('スタッフ登録エラー:', error);
-      regResult.style.display = 'block';
-      regResult.className = 'danger';
-      regResult.textContent = '❌ 登録中にエラーが発生しました';
-      regSubmitBtn.disabled = false;
-      regSubmitBtn.textContent = '登録する';
-    }
-  }
-
-  // ====== 月移動 ======
-  document.getElementById("prevMonth").onclick = async ()=>{
-    cur.setMonth(cur.getMonth()-1);
-    selected.clear();
-    await loadFirstPlanIfEmployee();
-    await loadExistingPreferences();
-    renderCal();
-    refreshTips();
-  };
-  document.getElementById("nextMonth").onclick = async ()=>{
-    cur.setMonth(cur.getMonth()+1);
-    selected.clear();
-    await loadFirstPlanIfEmployee();
-    await loadExistingPreferences();
-    renderCal();
-    refreshTips();
-  };
-
-  // ====== 入力モード切替 ======
-  const modeSelect = document.getElementById("modeSelect");
-  const patternBox = document.getElementById("patternBox");
-  const timeBox = document.getElementById("timeBox");
-  modeSelect.onchange = ()=>{
-    mode = modeSelect.value;
-    patternBox.style.display = mode==="pattern" ? "block" : "none";
-    timeBox.style.display = mode==="time" ? "block" : "none";
-  };
-
-  // ====== パターンUI ======
-  const patternRow = document.getElementById("patternRow");
-  function renderPatterns(){
-    patternRow.innerHTML = "";
-    PATTERNS.forEach(p=>{
-      const b = document.createElement("div");
-      b.className = "pill" + (p===currentPattern?" active-pt":"");
-      b.textContent = `${p.key}（${p.start}〜${p.end}）`;
-      b.onclick = ()=>{
-        currentPattern = p;
-        renderPatterns();
-      };
-      patternRow.appendChild(b);
-    });
-  }
-
-  // ====== 曜日ヘッダ ======
-  const dowRow = document.getElementById("dowRow");
-  ["日","月","火","水","木","金","土"].forEach(d=>{
-    const el = document.createElement("div");
-    el.className = "dow"; el.textContent = d;
-    dowRow.appendChild(el);
-  });
-
-  // ====== カレンダー描画 ======
-  const ymLabel = document.getElementById("ymLabel");
-  const calGrid = document.getElementById("calGrid");
-
-  function ymd(d){
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  }
-
-  function renderCal(){
-    // 月ラベル
-    const year = cur.getFullYear();
-    const month = cur.getMonth() + 1;
-    ymLabel.textContent = `${year}年 ${month}月`;
-
-    // 締切判定
-    const isPastDeadline = isDeadlinePassed(year, month);
-
-    // グリッド
-    calGrid.innerHTML = "";
-    const firstDow = (new Date(cur)).getDay();
-    const max = new Date(year, month, 0).getDate();
-
-    // 先頭空白
-    for(let i=0;i<firstDow;i++){
-      const s = document.createElement("div");
-      s.className="cell disabled";
-      calGrid.appendChild(s);
-    }
-
-    for(let d=1; d<=max; d++){
-      const cell = document.createElement("div");
-      cell.className = "cell";
-      const date = new Date(year, month - 1, d);
-      const key = ymd(date);
-
-      const dot = document.createElement("div"); dot.className="d"; dot.textContent = d;
-      const label = document.createElement("div"); label.className="label"; label.textContent = "";
-
-      // 締切後は全ての日付を選択不可
-      if (isPastDeadline) {
-        cell.classList.add("disabled");
-        cell.style.opacity = "0.3";
-        cell.style.cursor = "not-allowed";
-      }
-      // 社員の場合：第一案の出勤日でない日をグレーアウト
-      else if (role === 'emp' && !firstPlanWorkDays.includes(key)) {
-        cell.classList.add("disabled");
-        cell.style.opacity = "0.3";
-        cell.style.cursor = "not-allowed";
-      }
-
-      // 既存選択の反映
-      const val = selected.get(key);
-      if(val){
-        if(val.type==="part"){
-          cell.classList.add("pt-selected"); label.textContent = val.label || "OK";
-        }else{
-          cell.classList.add("em-selected"); label.textContent = "休み";
+          if (data.success) {
+            const select = document.getElementById('regStoreSelect');
+            select.innerHTML = '<option value="">選択してください</option>';
+            data.data.forEach(store => {
+              const option = document.createElement('option');
+              option.value = store.store_id;
+              option.textContent = store.store_name;
+              select.appendChild(option);
+            });
+          }
+        } catch (error) {
+          console.error('店舗リスト取得エラー:', error);
         }
-      }else{
-        label.style.display="none";
       }
 
-      cell.appendChild(dot); cell.appendChild(label);
-      calGrid.appendChild(cell);
+      // ====== 役職リスト取得（登録用） ======
+      async function loadRolesForRegistration() {
+        try {
+          const res = await fetch(
+            `${API_BASE}/api/master/roles?tenant_id=${TENANT_ID}`
+          );
+          const data = await res.json();
 
-      cell.onclick = ()=>{
-        toggleSelect(key, cell, label);
+          if (data.success) {
+            const select = document.getElementById('regRole');
+            select.innerHTML = '<option value="">選択してください</option>';
+            data.data.forEach(role => {
+              const option = document.createElement('option');
+              option.value = role.role_id;
+              option.textContent = role.role_name;
+              select.appendChild(option);
+            });
+          }
+        } catch (error) {
+          console.error('役職リスト取得エラー:', error);
+        }
+      }
+
+      // ====== 雇用形態リスト取得（登録用） ======
+      async function loadEmploymentTypesForRegistration() {
+        try {
+          // キャッシュが空の場合は先に読み込み
+          if (employmentTypesMap.size === 0) {
+            await loadEmploymentTypes();
+          }
+
+          const select = document.getElementById('regEmploymentType');
+          select.innerHTML = '<option value="">選択してください</option>';
+
+          // キャッシュからドロップダウンを生成
+          employmentTypesMap.forEach((empTypeData, employmentCode) => {
+            const option = document.createElement('option');
+            option.value = employmentCode;
+            option.textContent = empTypeData.employment_name;
+            // payment_typeをdata属性に保存（後でシフト入力タイプ判定に使用）
+            option.setAttribute('data-payment-type', empTypeData.payment_type);
+            select.appendChild(option);
+          });
+        } catch (error) {
+          console.error('雇用形態リスト取得エラー:', error);
+        }
+      }
+
+      // ====== スタッフ登録処理 ======
+      async function handleStaffRegistration() {
+        const storeId = document.getElementById('regStoreSelect').value;
+        const roleId = document.getElementById('regRole').value;
+        const name = document.getElementById('regName').value;
+        const staffCode = document.getElementById('regStaffCode').value;
+        const employmentType =
+          document.getElementById('regEmploymentType').value;
+        const email = document.getElementById('regEmail').value;
+        const phone = document.getElementById('regPhone').value;
+
+        // バリデーション
+        if (!storeId || !roleId || !name || !staffCode || !employmentType) {
+          alert('必須項目を入力してください');
+          return;
+        }
+
+        const regResult = document.getElementById('regResult');
+        const regSubmitBtn = document.getElementById('regSubmitBtn');
+
+        regSubmitBtn.disabled = true;
+        regSubmitBtn.textContent = '登録中...';
+
+        try {
+          const res = await fetch(`${API_BASE}/api/liff/register-staff`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${window._login.idToken}`,
+            },
+            body: JSON.stringify({
+              tenant_id: TENANT_ID,
+              store_id: parseInt(storeId),
+              role_id: parseInt(roleId),
+              name: name,
+              staff_code: staffCode,
+              employment_type: employmentType,
+              email: email || null,
+              phone_number: phone || null,
+            }),
+          });
+
+          const data = await res.json();
+
+          if (data.success) {
+            regResult.style.display = 'block';
+            regResult.className = 'success';
+            regResult.textContent =
+              '✅ 登録が完了しました！画面を再読み込みします...';
+
+            // 2秒後にリロード
+            setTimeout(() => {
+              location.reload();
+            }, 2000);
+          } else {
+            regResult.style.display = 'block';
+            regResult.className = 'danger';
+            regResult.textContent = `❌ ${data.error}`;
+            regSubmitBtn.disabled = false;
+            regSubmitBtn.textContent = '登録する';
+          }
+        } catch (error) {
+          console.error('スタッフ登録エラー:', error);
+          regResult.style.display = 'block';
+          regResult.className = 'danger';
+          regResult.textContent = '❌ 登録中にエラーが発生しました';
+          regSubmitBtn.disabled = false;
+          regSubmitBtn.textContent = '登録する';
+        }
+      }
+
+      // ====== 月移動 ======
+      document.getElementById('prevMonth').onclick = async () => {
+        cur.setMonth(cur.getMonth() - 1);
+        selected.clear();
+        await loadFirstPlanIfEmployee();
+        await loadExistingPreferences();
+        renderCal();
+        refreshTips();
       };
-    }
+      document.getElementById('nextMonth').onclick = async () => {
+        cur.setMonth(cur.getMonth() + 1);
+        selected.clear();
+        await loadFirstPlanIfEmployee();
+        await loadExistingPreferences();
+        renderCal();
+        refreshTips();
+      };
 
-    refreshCount();
-    refreshTips();
-  }
+      // ====== 入力モード切替 ======
+      const modeSelect = document.getElementById('modeSelect');
+      const patternBox = document.getElementById('patternBox');
+      const timeBox = document.getElementById('timeBox');
+      modeSelect.onchange = () => {
+        mode = modeSelect.value;
+        patternBox.style.display = mode === 'pattern' ? 'block' : 'none';
+        timeBox.style.display = mode === 'time' ? 'block' : 'none';
+      };
 
-  function toggleSelect(key, cell, label){
-    // 締切チェック
-    const year = cur.getFullYear();
-    const month = cur.getMonth() + 1;
-    if (isDeadlinePassed(year, month)) {
-      const prevMonth = month === 1 ? 12 : month - 1;
-      alert(`${year}年${month}月のシフト希望入力期限は${month === 1 ? year - 1 : year}年${prevMonth}月10日23:59で終了しました`);
-      return;
-    }
-
-    // 解除
-    if(selected.has(key)){
-      selected.delete(key);
-      cell.classList.remove("pt-selected","em-selected");
-      label.style.display="none";
-      refreshCount();
-      return;
-    }
-
-    // 新規選択
-    if(role==="emp"){
-      // 社員の場合：第一案の出勤日のみ選択可能
-      if (!firstPlanWorkDays.includes(key)) {
-        alert('第1案で出勤日になっている日のみ選択できます');
-        return;
+      // ====== パターンUI ======
+      const patternRow = document.getElementById('patternRow');
+      function renderPatterns() {
+        patternRow.innerHTML = '';
+        PATTERNS.forEach(p => {
+          const b = document.createElement('div');
+          b.className = 'pill' + (p === currentPattern ? ' active-pt' : '');
+          b.textContent = `${p.key}（${p.start}〜${p.end}）`;
+          b.onclick = () => {
+            currentPattern = p;
+            renderPatterns();
+          };
+          patternRow.appendChild(b);
+        });
       }
 
-      selected.set(key, {type:"emp"});
-      cell.classList.add("em-selected");
-      label.style.display="block";
-      label.textContent="休み";
-    }else{
-      // アルバイト：パターン/時刻適用
-      let start, end, tag;
-      if(mode==="pattern"){
-        start = currentPattern.start; end = currentPattern.end; tag = currentPattern.key;
-      }else{
-        start = document.getElementById("startTime").value || "09:00";
-        end   = document.getElementById("endTime").value || "18:00";
-        // カレンダー表示用に短縮形を作成（例：09:00 → 9）
-        const shortStart = start.replace(/^0/, '').replace(/:00$/, '');
-        const shortEnd = end.replace(/^0/, '').replace(/:00$/, '');
-        tag = `${shortStart}-${shortEnd}`;
+      // ====== 曜日ヘッダ ======
+      const dowRow = document.getElementById('dowRow');
+      ['日', '月', '火', '水', '木', '金', '土'].forEach(d => {
+        const el = document.createElement('div');
+        el.className = 'dow';
+        el.textContent = d;
+        dowRow.appendChild(el);
+      });
+
+      // ====== カレンダー描画 ======
+      const ymLabel = document.getElementById('ymLabel');
+      const calGrid = document.getElementById('calGrid');
+
+      function ymd(d) {
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
       }
-      selected.set(key,{type:"part", start, end, label:tag});
-      cell.classList.add("pt-selected");
-      label.style.display="block";
-      label.textContent=tag;
-    }
 
-    refreshCount();
-  }
+      function renderCal() {
+        // 月ラベル
+        const year = cur.getFullYear();
+        const month = cur.getMonth() + 1;
+        ymLabel.textContent = `${year}年 ${month}月`;
 
-  // ====== ヒント・ガード ======
-  function refreshTips(){
-    const tip = document.getElementById("tipBox");
-    const block = document.getElementById("blockBox");
-    const deadlineInfo = document.getElementById("deadlineInfo");
+        // 締切判定
+        const isPastDeadline = isDeadlinePassed(year, month);
 
-    if (!selectedStaff) {
-      tip.innerHTML = "スタッフを選択してください";
-      block.style.display = "none";
-      deadlineInfo.style.display = "none";
-      document.getElementById("submitBtn").disabled = true;
-      return;
-    }
+        // グリッド
+        calGrid.innerHTML = '';
+        const firstDow = new Date(cur).getDay();
+        const max = new Date(year, month, 0).getDate();
 
-    // 締切情報の表示
-    if (ENABLE_DEADLINE_CHECK) {
-      const year = cur.getFullYear();
-      const month = cur.getMonth() + 1;
-      const isPastDeadline = isDeadlinePassed(year, month);
+        // 先頭空白
+        for (let i = 0; i < firstDow; i++) {
+          const s = document.createElement('div');
+          s.className = 'cell disabled';
+          calGrid.appendChild(s);
+        }
 
-      if (isPastDeadline) {
-        const prevMonth = month === 1 ? 12 : month - 1;
-        const prevYear = month === 1 ? year - 1 : year;
-        deadlineInfo.innerHTML = `⚠️ <strong>${year}年${month}月のシフト希望入力期限は${prevYear}年${prevMonth}月10日23:59で終了しました</strong><br>既存の希望は閲覧できますが、編集・新規登録はできません。`;
-        deadlineInfo.style.display = "block";
-        document.getElementById("submitBtn").disabled = true;
-      } else {
-        const prevMonth = month === 1 ? 12 : month - 1;
-        const prevYear = month === 1 ? year - 1 : year;
-        deadlineInfo.innerHTML = `📅 ${year}年${month}月のシフト希望入力期限: ${prevYear}年${prevMonth}月10日23:59まで`;
-        deadlineInfo.style.display = "block";
-        document.getElementById("submitBtn").disabled = false;
+        for (let d = 1; d <= max; d++) {
+          const cell = document.createElement('div');
+          cell.className = 'cell';
+          const date = new Date(year, month - 1, d);
+          const key = ymd(date);
+
+          const dot = document.createElement('div');
+          dot.className = 'd';
+          dot.textContent = d;
+          const label = document.createElement('div');
+          label.className = 'label';
+          label.textContent = '';
+
+          // 締切後は全ての日付を選択不可
+          if (isPastDeadline) {
+            cell.classList.add('disabled');
+            cell.style.opacity = '0.3';
+            cell.style.cursor = 'not-allowed';
+          }
+          // 社員の場合：第一案の出勤日でない日をグレーアウト
+          else if (role === 'emp' && !firstPlanWorkDays.includes(key)) {
+            cell.classList.add('disabled');
+            cell.style.opacity = '0.3';
+            cell.style.cursor = 'not-allowed';
+          }
+
+          // 既存選択の反映
+          const val = selected.get(key);
+          if (val) {
+            if (val.type === 'part') {
+              cell.classList.add('pt-selected');
+              label.textContent = val.label || 'OK';
+            } else {
+              cell.classList.add('em-selected');
+              label.textContent = '休み';
+            }
+          } else {
+            label.style.display = 'none';
+          }
+
+          cell.appendChild(dot);
+          cell.appendChild(label);
+          calGrid.appendChild(cell);
+
+          cell.onclick = () => {
+            toggleSelect(key, cell, label);
+          };
+        }
+
+        refreshCount();
+        refreshTips();
       }
-    } else {
-      // 締切チェック無効時は締切情報を非表示
-      deadlineInfo.style.display = "none";
-      document.getElementById("submitBtn").disabled = false;
-    }
 
-    if(role==="emp"){
-      tip.innerHTML = "赤い日が「休み希望」です。選択した日が休み希望として登録されます。";
-      block.style.display = "none";
-    }else{
-      tip.innerHTML = "緑の選択が「出勤可能日」です。新しくタップする日は、上のパターン／時刻の設定で登録されます。";
-      block.style.display = "none";
-    }
-  }
+      function toggleSelect(key, cell, label) {
+        // 締切チェック
+        const year = cur.getFullYear();
+        const month = cur.getMonth() + 1;
+        if (isDeadlinePassed(year, month)) {
+          const prevMonth = month === 1 ? 12 : month - 1;
+          alert(
+            `${year}年${month}月のシフト希望入力期限は${month === 1 ? year - 1 : year}年${prevMonth}月10日23:59で終了しました`
+          );
+          return;
+        }
 
-  function refreshCount(){
-    let c=0;
-    for(const v of selected.values()){
-      if(v.type===role) c++;
-    }
-    document.getElementById("countLabel").textContent = c;
-  }
+        // 解除
+        if (selected.has(key)) {
+          selected.delete(key);
+          cell.classList.remove('pt-selected', 'em-selected');
+          label.style.display = 'none';
+          refreshCount();
+          return;
+        }
 
-  // ====== 送信処理（新APIエンドポイント対応） ======
-  document.getElementById("submitBtn").onclick = async ()=>{
-    const year = cur.getFullYear();
-    const month = cur.getMonth() + 1;
+        // 新規選択
+        if (role === 'emp') {
+          // 社員の場合：第一案の出勤日のみ選択可能
+          if (!firstPlanWorkDays.includes(key)) {
+            alert('第1案で出勤日になっている日のみ選択できます');
+            return;
+          }
 
-    // 締切チェック
-    if (isDeadlinePassed(year, month)) {
-      const prevMonth = month === 1 ? 12 : month - 1;
-      const prevYear = month === 1 ? year - 1 : year;
-      alert(`${year}年${month}月のシフト希望入力期限は${prevYear}年${prevMonth}月10日23:59で終了しました`);
-      return;
-    }
-
-    if (!selectedStaff) {
-      alert("スタッフを選択してください");
-      return;
-    }
-
-    if (selected.size === 0) {
-      alert("選択がありません");
-      return;
-    }
-
-    if (!confirm(`${selected.size}日分のシフト希望を送信しますか？`)) {
-      return;
-    }
-
-    try {
-      // 選択された日付を配列化
-
-      const dateArray = [];
-      const timeSlotArray = [];
-
-      Array.from(selected.keys()).forEach(key => {
-        // key はすでに "YYYY-MM-DD" 形式なので、そのまま使う
-        dateArray.push(key);
-
-        // 時刻情報を取得
-        const timeInfo = selected.get(key);
-        if (timeInfo && timeInfo.start && timeInfo.end) {
-          timeSlotArray.push(`${timeInfo.start}-${timeInfo.end}`);
+          selected.set(key, { type: 'emp' });
+          cell.classList.add('em-selected');
+          label.style.display = 'block';
+          label.textContent = '休み';
         } else {
-          timeSlotArray.push('');
+          // アルバイト：パターン/時刻適用
+          let start, end, tag;
+          if (mode === 'pattern') {
+            start = currentPattern.start;
+            end = currentPattern.end;
+            tag = currentPattern.key;
+          } else {
+            start = document.getElementById('startTime').value || '09:00';
+            end = document.getElementById('endTime').value || '18:00';
+            // カレンダー表示用に短縮形を作成（例：09:00 → 9）
+            const shortStart = start.replace(/^0/, '').replace(/:00$/, '');
+            const shortEnd = end.replace(/^0/, '').replace(/:00$/, '');
+            tag = `${shortStart}-${shortEnd}`;
+          }
+          selected.set(key, { type: 'part', start, end, label: tag });
+          cell.classList.add('pt-selected');
+          label.style.display = 'block';
+          label.textContent = tag;
         }
-      });
 
-      // リクエストボディ作成
-      const requestBody = {
-        tenant_id: TENANT_ID,
-        store_id: selectedStaff.store_id,
-        staff_id: selectedStaff.staff_id,
-        year: year,
-        month: month,
-        preferred_days: role === 'part' ? dateArray.join(',') : '',
-        ng_days: role === 'emp' ? dateArray.join(',') : '',
-        preferred_time_slots: role === 'part' ? timeSlotArray.join(',') : '',
-        notes: '',
-        status: 'PENDING'
+        refreshCount();
+      }
+
+      // ====== ヒント・ガード ======
+      function refreshTips() {
+        const tip = document.getElementById('tipBox');
+        const block = document.getElementById('blockBox');
+        const deadlineInfo = document.getElementById('deadlineInfo');
+
+        if (!selectedStaff) {
+          tip.innerHTML = 'スタッフを選択してください';
+          block.style.display = 'none';
+          deadlineInfo.style.display = 'none';
+          document.getElementById('submitBtn').disabled = true;
+          return;
+        }
+
+        // 締切情報の表示
+        if (ENABLE_DEADLINE_CHECK) {
+          const year = cur.getFullYear();
+          const month = cur.getMonth() + 1;
+          const isPastDeadline = isDeadlinePassed(year, month);
+
+          if (isPastDeadline) {
+            const prevMonth = month === 1 ? 12 : month - 1;
+            const prevYear = month === 1 ? year - 1 : year;
+            deadlineInfo.innerHTML = `⚠️ <strong>${year}年${month}月のシフト希望入力期限は${prevYear}年${prevMonth}月10日23:59で終了しました</strong><br>既存の希望は閲覧できますが、編集・新規登録はできません。`;
+            deadlineInfo.style.display = 'block';
+            document.getElementById('submitBtn').disabled = true;
+          } else {
+            const prevMonth = month === 1 ? 12 : month - 1;
+            const prevYear = month === 1 ? year - 1 : year;
+            deadlineInfo.innerHTML = `📅 ${year}年${month}月のシフト希望入力期限: ${prevYear}年${prevMonth}月10日23:59まで`;
+            deadlineInfo.style.display = 'block';
+            document.getElementById('submitBtn').disabled = false;
+          }
+        } else {
+          // 締切チェック無効時は締切情報を非表示
+          deadlineInfo.style.display = 'none';
+          document.getElementById('submitBtn').disabled = false;
+        }
+
+        if (role === 'emp') {
+          tip.innerHTML =
+            '赤い日が「休み希望」です。選択した日が休み希望として登録されます。';
+          block.style.display = 'none';
+        } else {
+          tip.innerHTML =
+            '緑の選択が「出勤可能日」です。新しくタップする日は、上のパターン／時刻の設定で登録されます。';
+          block.style.display = 'none';
+        }
+      }
+
+      function refreshCount() {
+        let c = 0;
+        for (const v of selected.values()) {
+          if (v.type === role) c++;
+        }
+        document.getElementById('countLabel').textContent = c;
+      }
+
+      // ====== 送信処理（新APIエンドポイント対応） ======
+      document.getElementById('submitBtn').onclick = async () => {
+        const year = cur.getFullYear();
+        const month = cur.getMonth() + 1;
+
+        // 締切チェック
+        if (isDeadlinePassed(year, month)) {
+          const prevMonth = month === 1 ? 12 : month - 1;
+          const prevYear = month === 1 ? year - 1 : year;
+          alert(
+            `${year}年${month}月のシフト希望入力期限は${prevYear}年${prevMonth}月10日23:59で終了しました`
+          );
+          return;
+        }
+
+        if (!selectedStaff) {
+          alert('スタッフを選択してください');
+          return;
+        }
+
+        if (selected.size === 0) {
+          alert('選択がありません');
+          return;
+        }
+
+        if (!confirm(`${selected.size}日分のシフト希望を送信しますか？`)) {
+          return;
+        }
+
+        try {
+          // 選択された日付を配列化
+
+          const dateArray = [];
+          const timeSlotArray = [];
+
+          Array.from(selected.keys()).forEach(key => {
+            // key はすでに "YYYY-MM-DD" 形式なので、そのまま使う
+            dateArray.push(key);
+
+            // 時刻情報を取得
+            const timeInfo = selected.get(key);
+            if (timeInfo && timeInfo.start && timeInfo.end) {
+              timeSlotArray.push(`${timeInfo.start}-${timeInfo.end}`);
+            } else {
+              timeSlotArray.push('');
+            }
+          });
+
+          // リクエストボディ作成
+          const requestBody = {
+            tenant_id: TENANT_ID,
+            store_id: selectedStaff.store_id,
+            staff_id: selectedStaff.staff_id,
+            year: year,
+            month: month,
+            preferred_days: role === 'part' ? dateArray.join(',') : '',
+            ng_days: role === 'emp' ? dateArray.join(',') : '',
+            preferred_time_slots:
+              role === 'part' ? timeSlotArray.join(',') : '',
+            notes: '',
+            status: 'PENDING',
+          };
+
+          // 更新 or 新規作成
+          const isUpdate = !!existingPreferenceId;
+          const url = isUpdate
+            ? `${API_BASE}/api/shifts/preferences/${existingPreferenceId}?tenant_id=${TENANT_ID}`
+            : `${API_BASE}/api/shifts/preferences`;
+
+          const response = await fetch(url, {
+            method: isUpdate ? 'PUT' : 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${window._login.idToken}`,
+            },
+            body: JSON.stringify(requestBody),
+          });
+
+          const result = await response.json();
+
+          if (result.success) {
+            const box = document.getElementById('resultBox');
+            box.style.display = 'block';
+            box.textContent = `✅ ${isUpdate ? '更新' : '送信'}に成功しました！`;
+            box.className = 'success';
+
+            // 成功後、既存のpreference_idを保存（次回は更新になる）
+            if (!isUpdate && result.data?.preference_id) {
+              existingPreferenceId = result.data.preference_id;
+            }
+          } else {
+            throw new Error(result.error || '送信に失敗しました');
+          }
+        } catch (error) {
+          const box = document.getElementById('resultBox');
+          box.style.display = 'block';
+          box.textContent = `❌ エラー: ${error.message}`;
+          box.className = 'danger';
+        }
       };
 
-      // 更新 or 新規作成
-      const isUpdate = !!existingPreferenceId;
-      const url = isUpdate
-        ? `${API_BASE}/api/shifts/preferences/${existingPreferenceId}?tenant_id=${TENANT_ID}`
-        : `${API_BASE}/api/shifts/preferences`;
+      // ====== 時刻入力：分を00に強制 ======
+      function forceHourOnly(input) {
+        const value = input.value;
+        if (value) {
+          const [hours] = value.split(':');
+          input.value = `${hours}:00`;
+        }
+      }
 
-      const response = await fetch(url, {
-        method: isUpdate ? 'PUT' : 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${window._login.idToken}`
-        },
-        body: JSON.stringify(requestBody)
+      document
+        .getElementById('startTime')
+        .addEventListener('change', function () {
+          forceHourOnly(this);
+        });
+      document
+        .getElementById('startTime')
+        .addEventListener('blur', function () {
+          forceHourOnly(this);
+        });
+
+      document
+        .getElementById('endTime')
+        .addEventListener('change', function () {
+          forceHourOnly(this);
+        });
+      document.getElementById('endTime').addEventListener('blur', function () {
+        forceHourOnly(this);
       });
 
-      const result = await response.json();
-
-      if (result.success) {
-        const box = document.getElementById("resultBox");
-        box.style.display = "block";
-        box.textContent = `✅ ${isUpdate ? '更新' : '送信'}に成功しました！`;
-        box.className = "success";
-
-        // 成功後、既存のpreference_idを保存（次回は更新になる）
-        if (!isUpdate && result.data?.preference_id) {
-          existingPreferenceId = result.data.preference_id;
-        }
-      } else {
-        throw new Error(result.error || '送信に失敗しました');
-      }
-    } catch (error) {
-      const box = document.getElementById("resultBox");
-      box.style.display = "block";
-      box.textContent = `❌ エラー: ${error.message}`;
-      box.className = "danger";
-    }
-  };
-
-  // ====== 時刻入力：分を00に強制 ======
-  function forceHourOnly(input) {
-    const value = input.value;
-    if (value) {
-      const [hours] = value.split(':');
-      input.value = `${hours}:00`;
-    }
-  }
-
-  document.getElementById('startTime').addEventListener('change', function() {
-    forceHourOnly(this);
-  });
-  document.getElementById('startTime').addEventListener('blur', function() {
-    forceHourOnly(this);
-  });
-
-  document.getElementById('endTime').addEventListener('change', function() {
-    forceHourOnly(this);
-  });
-  document.getElementById('endTime').addEventListener('blur', function() {
-    forceHourOnly(this);
-  });
-
-  // 初期化
-  (async function(){
-    await initLIFF();
-    renderPatterns();
-    renderCal();
-    refreshTips();
-  })();
-</script>
-</body>
+      // 初期化
+      (async function () {
+        await initLIFF();
+        renderPatterns();
+        renderCal();
+        refreshTips();
+      })();
+    </script>
+  </body>
 </html>
-

@@ -312,27 +312,31 @@
             <div id="ymLabel" style="font-weight: 700"></div>
             <button class="btn btn-outline" id="nextMonth">＞</button>
           </div>
+          <!-- MVP: パターン入力を廃止 (Issue #103) -->
+          <!--
           <select id="modeSelect" class="select" style="max-width: 220px">
             <option value="pattern">
               パターンで入力（早番/遅番/通し/どの時間帯でも可）
             </option>
             <option value="time">時刻で入力（自由入力）</option>
           </select>
+          -->
         </div>
 
-        <!-- パターン選択 -->
+        <!-- MVP: パターン入力を廃止 (Issue #103) -->
+        <!--
         <div id="patternBox">
           <div class="section-title">パターン</div>
           <div class="row" id="patternRow">
-            <!-- クリックで選択パターンを切替 -->
           </div>
           <div class="helper small">
             選んだパターンが、カレンダーで新規選択した日に適用されます。
           </div>
         </div>
+        -->
 
         <!-- 時刻入力 -->
-        <div id="timeBox" style="display: none; margin-top: 10px">
+        <div id="timeBox" style="margin-top: 10px">
           <div class="section-title">時刻入力</div>
           <div class="row">
             <input
@@ -452,13 +456,27 @@
       let storeList = []; // 店舗リスト
       let selectedStaff = null; // 選択中のスタッフ
       let role = 'part'; // "part"=アルバイト, "emp"=社員
-      let mode = 'pattern'; // "pattern" or "time"
+      // MVP: パターン入力を廃止 (Issue #103) - 時刻入力のみに固定
+      let mode = 'time'; // "pattern" or "time"
       let cur = new Date();
       cur.setDate(1); // 月の先頭
       let selected = new Map(); // key=YYYY-MM-DD, val={type:'part'|'emp', start,end,label}
       let currentPattern = PATTERNS[0];
       let employmentTypesMap = new Map(); // employment_code -> {employment_name, payment_type}
       let firstPlanWorkDays = []; // 社員用: 第一案の出勤日リスト (YYYY-MM-DD形式)
+
+      // ====== 時刻表示フォーマット ======
+      /**
+       * 時刻を短縮形式で表示（分が00の場合は省略）
+       * @param {string} time - HH:MM形式の時刻
+       * @returns {string} 短縮形式（例: "09:00" → "9", "09:30" → "9:30"）
+       */
+      function formatTime(time) {
+        if (!time) return '';
+        const [h, m] = time.split(':');
+        const hour = h.replace(/^0/, '');
+        return m === '00' ? hour : `${hour}:${m}`;
+      }
 
       // ====== 締切判定 ======
       /**
@@ -695,7 +713,7 @@
               const label = pref.is_ng
                 ? '休み'
                 : pref.start_time && pref.end_time
-                  ? `${pref.start_time.replace(':00', '')}-${pref.end_time.replace(':00', '')}`
+                  ? `${formatTime(pref.start_time)}-${formatTime(pref.end_time)}`
                   : 'OK';
 
               selected.set(pref.preference_date, {
@@ -822,8 +840,9 @@
       // ====== 入力タイプ情報更新 ======
       function updateRoleInfo() {
         const roleInfo = document.getElementById('roleInfo');
-        const modeSelect = document.getElementById('modeSelect');
-        const patternBox = document.getElementById('patternBox');
+        // MVP: パターン入力を廃止 (Issue #103)
+        // const modeSelect = document.getElementById('modeSelect');
+        // const patternBox = document.getElementById('patternBox');
         const timeBox = document.getElementById('timeBox');
 
         if (role === 'part') {
@@ -831,11 +850,10 @@
           roleInfo.style.background = 'var(--green-weak)';
           roleInfo.innerHTML = `
         <strong style="color:var(--green-strong)">✅ アルバイト</strong><br>
-        出勤できる日を<strong class="green">緑</strong>で選択し、パターン or 時刻を指定してください
+        出勤できる日を<strong class="green">緑</strong>で選択し、時刻を指定してください
       `;
-          // パターン/時刻選択を表示
-          if (modeSelect) modeSelect.style.display = 'block';
-          if (patternBox) patternBox.style.display = 'block';
+          // 時刻入力を表示
+          if (timeBox) timeBox.style.display = 'block';
         } else {
           // 社員の場合
           if (firstPlanWorkDays.length === 0) {
@@ -853,9 +871,7 @@
           第1案の出勤日から、休みたい日を<strong style="color:#b91c1c">赤</strong>で選択してください
         `;
           }
-          // 社員の場合は常にパターン/時刻選択を非表示
-          if (modeSelect) modeSelect.style.display = 'none';
-          if (patternBox) patternBox.style.display = 'none';
+          // 社員の場合は時刻入力を非表示
           if (timeBox) timeBox.style.display = 'none';
         }
       }
@@ -1094,6 +1110,8 @@
       };
 
       // ====== 入力モード切替 ======
+      // MVP: パターン入力を廃止 (Issue #103)
+      /*
       const modeSelect = document.getElementById('modeSelect');
       const patternBox = document.getElementById('patternBox');
       const timeBox = document.getElementById('timeBox');
@@ -1102,8 +1120,11 @@
         patternBox.style.display = mode === 'pattern' ? 'block' : 'none';
         timeBox.style.display = mode === 'time' ? 'block' : 'none';
       };
+      */
 
       // ====== パターンUI ======
+      // MVP: パターン入力を廃止 (Issue #103)
+      /*
       const patternRow = document.getElementById('patternRow');
       function renderPatterns() {
         patternRow.innerHTML = '';
@@ -1118,6 +1139,7 @@
           patternRow.appendChild(b);
         });
       }
+      */
 
       // ====== 曜日ヘッダ ======
       const dowRow = document.getElementById('dowRow');
@@ -1256,10 +1278,8 @@
           } else {
             start = document.getElementById('startTime').value || '09:00';
             end = document.getElementById('endTime').value || '18:00';
-            // カレンダー表示用に短縮形を作成（例：09:00 → 9）
-            const shortStart = start.replace(/^0/, '').replace(/:00$/, '');
-            const shortEnd = end.replace(/^0/, '').replace(/:00$/, '');
-            tag = `${shortStart}-${shortEnd}`;
+            // カレンダー表示用に短縮形を作成
+            tag = `${formatTime(start)}-${formatTime(end)}`;
           }
           selected.set(key, { type: 'part', start, end, label: tag });
           cell.classList.add('pt-selected');
@@ -1419,39 +1439,11 @@
         }
       };
 
-      // ====== 時刻入力：分を00に強制 ======
-      function forceHourOnly(input) {
-        const value = input.value;
-        if (value) {
-          const [hours] = value.split(':');
-          input.value = `${hours}:00`;
-        }
-      }
-
-      document
-        .getElementById('startTime')
-        .addEventListener('change', function () {
-          forceHourOnly(this);
-        });
-      document
-        .getElementById('startTime')
-        .addEventListener('blur', function () {
-          forceHourOnly(this);
-        });
-
-      document
-        .getElementById('endTime')
-        .addEventListener('change', function () {
-          forceHourOnly(this);
-        });
-      document.getElementById('endTime').addEventListener('blur', function () {
-        forceHourOnly(this);
-      });
-
       // 初期化
       (async function () {
         await initLIFF();
-        renderPatterns();
+        // MVP: パターン入力を廃止 (Issue #103)
+        // renderPatterns();
         renderCal();
         refreshTips();
       })();

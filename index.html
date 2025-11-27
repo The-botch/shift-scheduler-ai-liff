@@ -707,7 +707,8 @@
             });
 
             document.getElementById('resultBox').style.display = 'block';
-            document.getElementById('resultBox').textContent = `既存のシフト希望が読み込まれました（${data.data.length}日分）`;
+            document.getElementById('resultBox').textContent =
+              `既存のシフト希望が読み込まれました（${data.data.length}日分）`;
           } else {
             document.getElementById('resultBox').style.display = 'none';
           }

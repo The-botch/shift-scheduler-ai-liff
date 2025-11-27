@@ -910,21 +910,27 @@
         <input type="text" id="regName" class="select" placeholder="山田太郎" required />
       </div>
 
+      <!-- MVP: スタッフコード入力を廃止 (Issue #129) -->
+      <!--
       <div style="margin-bottom:10px">
         <label class="helper" style="display:block;margin-bottom:4px">🔖 スタッフコード</label>
         <input type="text" id="regStaffCode" class="select" placeholder="STAFF001" required />
         <div class="helper small">※ 半角英数字で入力してください</div>
       </div>
+      -->
 
       <div style="margin-bottom:10px">
         <label class="helper" style="display:block;margin-bottom:4px">💼 雇用形態</label>
         <select id="regEmploymentType" class="select" required></select>
       </div>
 
+      <!-- MVP: 役職選択を非表示 (Issue #109) -->
+      <!--
       <div style="margin-bottom:10px">
         <label class="helper" style="display:block;margin-bottom:4px">👔 役職</label>
         <select id="regRole" class="select" required></select>
       </div>
+      -->
 
       <div style="margin-bottom:10px">
         <label class="helper" style="display:block;margin-bottom:4px">📧 メールアドレス（任意）</label>
@@ -942,9 +948,10 @@
     `;
         container.appendChild(registrationCard);
 
-        // 店舗リスト、役職リスト、雇用形態リストを取得して表示
+        // 店舗リスト、雇用形態リストを取得して表示
         loadStoresForRegistration();
-        loadRolesForRegistration();
+        // MVP: 役職選択を非表示 (Issue #109)
+        // loadRolesForRegistration();
         loadEmploymentTypesForRegistration();
 
         // 登録ボタンのイベント
@@ -1026,16 +1033,18 @@
       // ====== スタッフ登録処理 ======
       async function handleStaffRegistration() {
         const storeId = document.getElementById('regStoreSelect').value;
-        const roleId = document.getElementById('regRole').value;
+        // MVP: 役職選択を非表示 (Issue #109) - デフォルト値を使用
+        const roleId = null;
         const name = document.getElementById('regName').value;
-        const staffCode = document.getElementById('regStaffCode').value;
+        // MVP: スタッフコード入力を廃止 (Issue #129) - 自動生成
+        const staffCode = null;
         const employmentType =
           document.getElementById('regEmploymentType').value;
         const email = document.getElementById('regEmail').value;
         const phone = document.getElementById('regPhone').value;
 
         // バリデーション
-        if (!storeId || !roleId || !name || !staffCode || !employmentType) {
+        if (!storeId || !name || !employmentType) {
           alert('必須項目を入力してください');
           return;
         }
@@ -1056,9 +1065,9 @@
             body: JSON.stringify({
               tenant_id: TENANT_ID,
               store_id: parseInt(storeId),
-              role_id: parseInt(roleId),
+              role_id: roleId, // nullを送信（バックエンドでデフォルト値を設定）
               name: name,
-              staff_code: staffCode,
+              staff_code: staffCode, // nullを送信（バックエンドで自動生成）
               employment_type: employmentType,
               email: email || null,
               phone_number: phone || null,

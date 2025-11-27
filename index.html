@@ -710,13 +710,16 @@
           if (data.success && data.data && data.data.length > 0) {
             // 1日1レコード形式のデータを復元
             data.data.forEach(pref => {
+              // preference_dateがISO形式（2026-01-01T00:00:00.000Z）の場合、YYYY-MM-DD形式に変換
+              const dateKey = pref.preference_date.split('T')[0];
+
               const label = pref.is_ng
                 ? '休み'
                 : pref.start_time && pref.end_time
                   ? `${formatTime(pref.start_time)}-${formatTime(pref.end_time)}`
                   : 'OK';
 
-              selected.set(pref.preference_date, {
+              selected.set(dateKey, {
                 type: pref.is_ng ? 'emp' : 'part',
                 start: pref.start_time || null,
                 end: pref.end_time || null,

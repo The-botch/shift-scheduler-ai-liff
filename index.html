@@ -457,7 +457,6 @@
       cur.setDate(1); // 月の先頭
       let selected = new Map(); // key=YYYY-MM-DD, val={type:'part'|'emp', start,end,label}
       let currentPattern = PATTERNS[0];
-      let existingPreferenceId = null; // 既存のシフト希望ID
       let employmentTypesMap = new Map(); // employment_code -> {employment_name, payment_type}
       let firstPlanWorkDays = []; // 社員用: 第一案の出勤日リスト (YYYY-MM-DD形式)
 
@@ -673,44 +672,44 @@
         refreshTips();
       }
 
-      // ====== 既存シフト希望読み込み ======
+      // ====== 既存シフト希望読み込み（1日1レコード形式対応） ======
       async function loadExistingPreferences() {
         if (!selectedStaff) return;
 
         try {
           const year = cur.getFullYear();
           const month = cur.getMonth() + 1;
-          const url = `${API_BASE}/api/shifts/preferences?tenant_id=${TENANT_ID}&staff_id=${selectedStaff.staff_id}&year=${year}&month=${month}`;
+
+          // date_from, date_toで期間指定（月の1日〜末日）
+          const firstDay = `${year}-${String(month).padStart(2, '0')}-01`;
+          const lastDay = new Date(year, month, 0).getDate();
+          const lastDayStr = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+
+          const url = `${API_BASE}/api/shifts/preferences?tenant_id=${TENANT_ID}&staff_id=${selectedStaff.staff_id}&date_from=${firstDay}&date_to=${lastDayStr}`;
           const res = await fetch(url);
           const data = await res.json();
 
           if (data.success && data.data && data.data.length > 0) {
-            const pref = data.data[0];
-            existingPreferenceId = pref.preference_id;
+            // 1日1レコード形式のデータを復元
+            data.data.forEach(pref => {
+              const label = pref.is_ng
+                ? '休み'
+                : pref.start_time && pref.end_time
+                  ? `${pref.start_time.replace(':00', '')}-${pref.end_time.replace(':00', '')}`
+                  : 'OK';
 
-            // 日付を復元
-            const dateStr =
-              role === 'part' ? pref.preferred_days : pref.ng_days;
-            if (dateStr) {
-              dateStr.split(',').forEach(d => {
-                const day = parseInt(d.trim().split('-')[2]);
-                if (day >= 1 && day <= 31) {
-                  // 仮のパターンで登録（実際のパターンはAPIに保存されていないため）
-                  selected.set(ymd(new Date(year, month - 1, day)), {
-                    type: role,
-                    start: PATTERNS[0].start,
-                    end: PATTERNS[0].end,
-                    label: role === 'part' ? PATTERNS[0].key : '休み',
-                  });
-                }
+              selected.set(pref.preference_date, {
+                type: pref.is_ng ? 'emp' : 'part',
+                start: pref.start_time || null,
+                end: pref.end_time || null,
+                label: label,
               });
-            }
+            });
 
             document.getElementById('resultBox').style.display = 'block';
             document.getElementById('resultBox').textContent =
-              '既存のシフト希望が読み込まれました（更新モード）';
+              `既存のシフト希望が読み込まれました（${data.data.length}日分）`;
           } else {
-            existingPreferenceId = null;
             document.getElementById('resultBox').style.display = 'none';
           }
         } catch (error) {
@@ -1329,7 +1328,7 @@
         document.getElementById('countLabel').textContent = c;
       }
 
-      // ====== 送信処理（新APIエンドポイント対応） ======
+      // ====== 送信処理（1日1レコード形式・一括登録API対応） ======
       document.getElementById('submitBtn').onclick = async () => {
         const year = cur.getFullYear();
         const month = cur.getMonth() + 1;
@@ -1359,47 +1358,38 @@
         }
 
         try {
-          // 選択された日付を配列化
+          // 選択された日付を1日1レコード形式の配列に変換
+          const preferences = [];
 
-          const dateArray = [];
-          const timeSlotArray = [];
+          selected.forEach((value, key) => {
+            // key = "YYYY-MM-DD" 形式の日付
+            const pref = {
+              preference_date: key,
+              is_ng: value.type === 'emp', // 社員の場合はNG日
+              notes: '',
+            };
 
-          Array.from(selected.keys()).forEach(key => {
-            // key はすでに "YYYY-MM-DD" 形式なので、そのまま使う
-            dateArray.push(key);
-
-            // 時刻情報を取得
-            const timeInfo = selected.get(key);
-            if (timeInfo && timeInfo.start && timeInfo.end) {
-              timeSlotArray.push(`${timeInfo.start}-${timeInfo.end}`);
-            } else {
-              timeSlotArray.push('');
+            // アルバイトの場合は時刻情報を追加
+            if (value.type === 'part') {
+              pref.start_time = value.start || null;
+              pref.end_time = value.end || null;
             }
+
+            preferences.push(pref);
           });
 
-          // リクエストボディ作成
+          // 一括登録APIを使用
           const requestBody = {
             tenant_id: TENANT_ID,
             store_id: selectedStaff.store_id,
             staff_id: selectedStaff.staff_id,
-            year: year,
-            month: month,
-            preferred_days: role === 'part' ? dateArray.join(',') : '',
-            ng_days: role === 'emp' ? dateArray.join(',') : '',
-            preferred_time_slots:
-              role === 'part' ? timeSlotArray.join(',') : '',
-            notes: '',
-            status: 'PENDING',
+            preferences: preferences,
           };
 
-          // 更新 or 新規作成
-          const isUpdate = !!existingPreferenceId;
-          const url = isUpdate
-            ? `${API_BASE}/api/shifts/preferences/${existingPreferenceId}?tenant_id=${TENANT_ID}`
-            : `${API_BASE}/api/shifts/preferences`;
+          const url = `${API_BASE}/api/shifts/preferences/bulk`;
 
           const response = await fetch(url, {
-            method: isUpdate ? 'PUT' : 'POST',
+            method: 'POST',
             headers: {
               'Content-Type': 'application/json',
               Authorization: `Bearer ${window._login.idToken}`,
@@ -1412,13 +1402,12 @@
           if (result.success) {
             const box = document.getElementById('resultBox');
             box.style.display = 'block';
-            box.textContent = `✅ ${isUpdate ? '更新' : '送信'}に成功しました！`;
+            box.textContent = `✅ ${result.inserted}件のシフト希望を送信しました！`;
             box.className = 'success';
 
-            // 成功後、既存のpreference_idを保存（次回は更新になる）
-            if (!isUpdate && result.data?.preference_id) {
-              existingPreferenceId = result.data.preference_id;
-            }
+            // 送信後、既存データを再読み込み
+            await loadExistingPreferences();
+            renderCal();
           } else {
             throw new Error(result.error || '送信に失敗しました');
           }

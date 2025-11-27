@@ -1033,11 +1033,13 @@
       // ====== スタッフ登録処理 ======
       async function handleStaffRegistration() {
         const storeId = document.getElementById('regStoreSelect').value;
-        // MVP: 役職選択を非表示 (Issue #109) - デフォルト値を使用
-        const roleId = null;
+        // TODO: バックエンドでnull許可後に削除予定 (Issue #109)
+        // 暫定: デフォルト役職ID=1を使用
+        const roleId = 1;
         const name = document.getElementById('regName').value;
-        // MVP: スタッフコード入力を廃止 (Issue #129) - 自動生成
-        const staffCode = null;
+        // TODO: バックエンドでnull許可後に削除予定 (Issue #129)
+        // 暫定: ダミーのスタッフコードを生成
+        const staffCode = `TEMP_${Date.now()}`;
         const employmentType =
           document.getElementById('regEmploymentType').value;
         const email = document.getElementById('regEmail').value;
@@ -1065,9 +1067,9 @@
             body: JSON.stringify({
               tenant_id: TENANT_ID,
               store_id: parseInt(storeId),
-              role_id: roleId, // nullを送信（バックエンドでデフォルト値を設定）
+              role_id: roleId, // TODO: バックエンド修正後はnullに変更
               name: name,
-              staff_code: staffCode, // nullを送信（バックエンドで自動生成）
+              staff_code: staffCode, // TODO: バックエンド修正後はnullに変更
               employment_type: employmentType,
               email: email || null,
               phone_number: phone || null,

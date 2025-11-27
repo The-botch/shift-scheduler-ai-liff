@@ -463,6 +463,7 @@
       let selected = new Map(); // key=YYYY-MM-DD, val={type:'part'|'emp', start,end,label}
       let currentPattern = PATTERNS[0];
       let employmentTypesMap = new Map(); // employment_code -> {employment_name, payment_type}
+      let rolesMap = new Map(); // role_code -> role_id のマッピング
       let firstPlanWorkDays = []; // 社員用: 第一案の出勤日リスト (YYYY-MM-DD形式)
 
       // ====== 時刻表示フォーマット ======
@@ -576,6 +577,29 @@
         }
         // payment_typeで判定: HOURLYならアルバイト、それ以外（MONTHLYなど）は社員
         return empType.payment_type === 'HOURLY' ? 'part' : 'emp';
+      }
+
+      // ====== 雇用形態から役職IDを判定 ======
+      function determineRoleIdFromEmploymentType(employmentTypeCode) {
+        const empType = employmentTypesMap.get(employmentTypeCode);
+        if (!empType) {
+          console.warn('雇用形態が見つかりません:', employmentTypeCode);
+          return null;
+        }
+
+        // payment_typeで判定: HOURLYならSTAFF、それ以外（MONTHLYなど）はSENIOR
+        const roleCode = empType.payment_type === 'HOURLY' ? 'STAFF' : 'SENIOR';
+        const roleId = rolesMap.get(roleCode);
+
+        if (!roleId) {
+          console.warn('役職が見つかりません:', roleCode);
+          return null;
+        }
+
+        console.log(
+          `雇用形態: ${employmentTypeCode} -> 役職コード: ${roleCode} -> 役職ID: ${roleId}`
+        );
+        return roleId;
       }
 
       // ====== 第1案データ取得（社員のみ） ======
@@ -1005,12 +1029,36 @@
         }
       }
 
+      // ====== 役職マスタ取得してキャッシュ ======
+      async function loadRolesMap() {
+        try {
+          const res = await fetch(
+            `${API_BASE}/api/master/roles?tenant_id=${TENANT_ID}`
+          );
+          const data = await res.json();
+
+          if (data.success) {
+            data.data.forEach(role => {
+              rolesMap.set(role.role_code, role.role_id);
+            });
+            console.log('役職マスタ読み込み完了:', rolesMap);
+          }
+        } catch (error) {
+          console.error('役職マスタ読み込みエラー:', error);
+        }
+      }
+
       // ====== 雇用形態リスト取得（登録用） ======
       async function loadEmploymentTypesForRegistration() {
         try {
           // キャッシュが空の場合は先に読み込み
           if (employmentTypesMap.size === 0) {
             await loadEmploymentTypes();
+          }
+
+          // 役職マスタも取得
+          if (rolesMap.size === 0) {
+            await loadRolesMap();
           }
 
           const select = document.getElementById('regEmploymentType');
@@ -1033,9 +1081,6 @@
       // ====== スタッフ登録処理 ======
       async function handleStaffRegistration() {
         const storeId = document.getElementById('regStoreSelect').value;
-        // TODO: バックエンドでnull許可後に削除予定 (Issue #109)
-        // 暫定: デフォルト役職ID=1を使用
-        const roleId = 1;
         const name = document.getElementById('regName').value;
         // TODO: バックエンドでnull許可後に削除予定 (Issue #129)
         // 暫定: ダミーのスタッフコードを生成
@@ -1048,6 +1093,13 @@
         // バリデーション
         if (!storeId || !name || !employmentType) {
           alert('必須項目を入力してください');
+          return;
+        }
+
+        // 雇用形態から役職IDを自動判定
+        const roleId = determineRoleIdFromEmploymentType(employmentType);
+        if (!roleId) {
+          alert('役職の判定に失敗しました。雇用形態を正しく選択してください。');
           return;
         }
 
@@ -1067,7 +1119,7 @@
             body: JSON.stringify({
               tenant_id: TENANT_ID,
               store_id: parseInt(storeId),
-              role_id: roleId, // TODO: バックエンド修正後はnullに変更
+              role_id: roleId, // 雇用形態から自動判定された役職ID
               name: name,
               staff_code: staffCode, // TODO: バックエンド修正後はnullに変更
               employment_type: employmentType,

@@ -79,10 +79,12 @@ npm run dev
 ## 技術スタック
 
 ### フロントエンド
+
 - HTML/CSS/JavaScript (Vanilla)
 - LIFF SDK v2
 
 ### バックエンド
+
 - Node.js + Express
 - PostgreSQL (pg)
 - node-cron

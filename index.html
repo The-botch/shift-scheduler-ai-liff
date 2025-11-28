@@ -1367,8 +1367,12 @@
         const month = cur.getMonth() + 1;
         if (isDeadlinePassed(year, month, getEmploymentType())) {
           const prevMonth = month === 1 ? 12 : month - 1;
+          const prevYear = month === 1 ? year - 1 : year;
+          const setting = deadlineSettingsMap.get(getEmploymentType());
+          const deadlineDay = setting?.deadline_day || 10;
+          const deadlineTime = setting?.deadline_time || '12:00';
           alert(
-            `${year}年${month}月のシフト希望入力期限は${month === 1 ? year - 1 : year}年${prevMonth}月10日23:59で終了しました`
+            `${year}年${month}月のシフト希望入力期限は${prevYear}年${prevMonth}月${deadlineDay}日${deadlineTime}で終了しました`
           );
           return;
         }
@@ -1443,13 +1447,19 @@
           if (isPastDeadline) {
             const prevMonth = month === 1 ? 12 : month - 1;
             const prevYear = month === 1 ? year - 1 : year;
-            deadlineInfo.innerHTML = `⚠️ <strong>${year}年${month}月のシフト希望入力期限は${prevYear}年${prevMonth}月10日23:59で終了しました</strong><br>既存の希望は閲覧できますが、編集・新規登録はできません。`;
+            const setting = deadlineSettingsMap.get(getEmploymentType());
+            const deadlineDay = setting?.deadline_day || 10;
+            const deadlineTime = setting?.deadline_time || '12:00';
+            deadlineInfo.innerHTML = `⚠️ <strong>${year}年${month}月のシフト希望入力期限は${prevYear}年${prevMonth}月${deadlineDay}日${deadlineTime}で終了しました</strong><br>既存の希望は閲覧できますが、編集・新規登録はできません。`;
             deadlineInfo.style.display = 'block';
             document.getElementById('submitBtn').disabled = true;
           } else {
             const prevMonth = month === 1 ? 12 : month - 1;
             const prevYear = month === 1 ? year - 1 : year;
-            deadlineInfo.innerHTML = `📅 ${year}年${month}月のシフト希望入力期限: ${prevYear}年${prevMonth}月10日23:59まで`;
+            const setting = deadlineSettingsMap.get(getEmploymentType());
+            const deadlineDay = setting?.deadline_day || 10;
+            const deadlineTime = setting?.deadline_time || '12:00';
+            deadlineInfo.innerHTML = `📅 ${year}年${month}月のシフト希望入力期限: ${prevYear}年${prevMonth}月${deadlineDay}日${deadlineTime}まで`;
             deadlineInfo.style.display = 'block';
             document.getElementById('submitBtn').disabled = false;
           }
@@ -1487,8 +1497,11 @@
         if (isDeadlinePassed(year, month, getEmploymentType())) {
           const prevMonth = month === 1 ? 12 : month - 1;
           const prevYear = month === 1 ? year - 1 : year;
+          const setting = deadlineSettingsMap.get(getEmploymentType());
+          const deadlineDay = setting?.deadline_day || 10;
+          const deadlineTime = setting?.deadline_time || '12:00';
           alert(
-            `${year}年${month}月のシフト希望入力期限は${prevYear}年${prevMonth}月10日23:59で終了しました`
+            `${year}年${month}月のシフト希望入力期限は${prevYear}年${prevMonth}月${deadlineDay}日${deadlineTime}で終了しました`
           );
           return;
         }

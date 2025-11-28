@@ -464,7 +464,7 @@
       let currentPattern = PATTERNS[0];
       let employmentTypesMap = new Map(); // employment_code -> {employment_name}
       let rolesMap = new Map(); // role_code -> role_id のマッピング
-      let deadlineSettingsMap = new Map(); // employment_type -> {start_day, deadline_day, deadline_hour, deadline_minute, is_enabled}
+      let deadlineSettingsMap = new Map(); // employment_type -> {deadline_day, deadline_hour, deadline_minute, is_enabled}
       let firstPlanWorkDays = []; // 社員用: 第一案の出勤日リスト (YYYY-MM-DD形式)
 
       // ====== 時刻表示フォーマット ======
@@ -597,14 +597,13 @@
       async function loadDeadlineSettings() {
         try {
           const res = await fetch(
-            `${API_BASE}/api/shifts/deadline-settings?tenant_id=${TENANT_ID}`
+            `${API_BASE}/api/liff/deadline-settings?tenant_id=${TENANT_ID}`
           );
           const data = await res.json();
 
           if (data.success) {
             data.data.forEach(setting => {
               deadlineSettingsMap.set(setting.employment_type, {
-                start_day: setting.start_day,
                 deadline_day: setting.deadline_day,
                 deadline_hour: setting.deadline_hour || 23,
                 deadline_minute: setting.deadline_minute || 59,
@@ -617,14 +616,12 @@
           console.error('期限設定読み込みエラー:', error);
           // フォールバック: デフォルト値を使用
           deadlineSettingsMap.set('FULL_TIME', {
-            start_day: 1,
             deadline_day: 10,
             deadline_hour: 23,
             deadline_minute: 59,
             is_enabled: true,
           });
           deadlineSettingsMap.set('PART_TIME', {
-            start_day: 1,
             deadline_day: 15,
             deadline_hour: 23,
             deadline_minute: 59,

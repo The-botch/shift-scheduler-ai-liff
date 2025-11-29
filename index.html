@@ -1424,7 +1424,20 @@
         const year = cur.getFullYear();
         const month = cur.getMonth() + 1;
 
-        // 第1案存在チェック
+        // 1. 締切チェック（最優先）
+        if (isDeadlinePassed(year, month, getEmploymentType())) {
+          const prevMonth = month === 1 ? 12 : month - 1;
+          const prevYear = month === 1 ? year - 1 : year;
+          const setting = deadlineSettingsMap.get(getEmploymentType());
+          const deadlineDay = setting?.deadline_day || 10;
+          const deadlineTime = setting?.deadline_time || '12:00';
+          alert(
+            `${year}年${month}月のシフト希望入力期限は${prevYear}年${prevMonth}月${deadlineDay}日${deadlineTime}で終了しました`
+          );
+          return;
+        }
+
+        // 2. 第1案存在チェック
         if (role === 'part' && !firstPlanExists) {
           alert(
             `${year}年${month}月の第1案がまだ作成されていません。第1案が作成されるまでお待ちください。`
@@ -1434,19 +1447,6 @@
         if (role === 'emp' && firstPlanWorkDays.length === 0) {
           alert(
             `${year}年${month}月の第1案がまだ作成されていません。第1案が作成されるまでお待ちください。`
-          );
-          return;
-        }
-
-        // 締切チェック
-        if (isDeadlinePassed(year, month, getEmploymentType())) {
-          const prevMonth = month === 1 ? 12 : month - 1;
-          const prevYear = month === 1 ? year - 1 : year;
-          const setting = deadlineSettingsMap.get(getEmploymentType());
-          const deadlineDay = setting?.deadline_day || 10;
-          const deadlineTime = setting?.deadline_time || '12:00';
-          alert(
-            `${year}年${month}月のシフト希望入力期限は${prevYear}年${prevMonth}月${deadlineDay}日${deadlineTime}で終了しました`
           );
           return;
         }
@@ -1511,32 +1511,7 @@
         const year = cur.getFullYear();
         const month = cur.getMonth() + 1;
 
-        // 第1案の存在チェック（アルバイトの場合）
-        if (role === 'part' && !firstPlanExists) {
-          deadlineInfo.innerHTML = `⏳ <strong>${year}年${month}月の第1案がまだ作成されていません</strong><br>第1案が作成されるまでシフト希望の入力はできません。`;
-          deadlineInfo.style.display = 'block';
-          deadlineInfo.style.background = '#e3f2fd';
-          document.getElementById('submitBtn').disabled = true;
-          tip.innerHTML = '第1案の作成をお待ちください';
-          block.style.display = 'none';
-          return;
-        }
-
-        // 第1案の存在チェック（社員の場合）
-        if (role === 'emp' && firstPlanWorkDays.length === 0) {
-          deadlineInfo.innerHTML = `⏳ <strong>${year}年${month}月の第1案がまだ作成されていません</strong><br>第1案が作成されるまで休み希望の入力はできません。`;
-          deadlineInfo.style.display = 'block';
-          deadlineInfo.style.background = '#e3f2fd';
-          document.getElementById('submitBtn').disabled = true;
-          tip.innerHTML = '第1案の作成をお待ちください';
-          block.style.display = 'none';
-          return;
-        }
-
-        // 第1案が存在する場合は背景色を戻す
-        deadlineInfo.style.background = '#fff3cd';
-
-        // 締切情報の表示
+        // 1. 締切チェック（最優先）
         if (ENABLE_DEADLINE_CHECK) {
           const isPastDeadline = isDeadlinePassed(
             year,
@@ -1552,17 +1527,47 @@
             const deadlineTime = setting?.deadline_time || '12:00';
             deadlineInfo.innerHTML = `⚠️ <strong>${year}年${month}月のシフト希望入力期限は${prevYear}年${prevMonth}月${deadlineDay}日${deadlineTime}で終了しました</strong><br>既存の希望は閲覧できますが、編集・新規登録はできません。`;
             deadlineInfo.style.display = 'block';
+            deadlineInfo.style.background = '#fff3cd';
             document.getElementById('submitBtn').disabled = true;
-          } else {
-            const prevMonth = month === 1 ? 12 : month - 1;
-            const prevYear = month === 1 ? year - 1 : year;
-            const setting = deadlineSettingsMap.get(getEmploymentType());
-            const deadlineDay = setting?.deadline_day || 10;
-            const deadlineTime = setting?.deadline_time || '12:00';
-            deadlineInfo.innerHTML = `📅 ${year}年${month}月のシフト希望入力期限: ${prevYear}年${prevMonth}月${deadlineDay}日${deadlineTime}まで`;
-            deadlineInfo.style.display = 'block';
-            document.getElementById('submitBtn').disabled = false;
+            tip.innerHTML = '入力期限が過ぎています';
+            block.style.display = 'none';
+            return;
           }
+        }
+
+        // 2. 第1案の存在チェック（アルバイトの場合）
+        if (role === 'part' && !firstPlanExists) {
+          deadlineInfo.innerHTML = `⏳ <strong>${year}年${month}月の第1案がまだ作成されていません</strong><br>第1案が作成されるまでシフト希望の入力はできません。`;
+          deadlineInfo.style.display = 'block';
+          deadlineInfo.style.background = '#e3f2fd';
+          document.getElementById('submitBtn').disabled = true;
+          tip.innerHTML = '第1案の作成をお待ちください';
+          block.style.display = 'none';
+          return;
+        }
+
+        // 2. 第1案の存在チェック（社員の場合）
+        if (role === 'emp' && firstPlanWorkDays.length === 0) {
+          deadlineInfo.innerHTML = `⏳ <strong>${year}年${month}月の第1案がまだ作成されていません</strong><br>第1案が作成されるまで休み希望の入力はできません。`;
+          deadlineInfo.style.display = 'block';
+          deadlineInfo.style.background = '#e3f2fd';
+          document.getElementById('submitBtn').disabled = true;
+          tip.innerHTML = '第1案の作成をお待ちください';
+          block.style.display = 'none';
+          return;
+        }
+
+        // 3. 締切前かつ第1案あり → 通常表示
+        deadlineInfo.style.background = '#fff3cd';
+        if (ENABLE_DEADLINE_CHECK) {
+          const prevMonth = month === 1 ? 12 : month - 1;
+          const prevYear = month === 1 ? year - 1 : year;
+          const setting = deadlineSettingsMap.get(getEmploymentType());
+          const deadlineDay = setting?.deadline_day || 10;
+          const deadlineTime = setting?.deadline_time || '12:00';
+          deadlineInfo.innerHTML = `📅 ${year}年${month}月のシフト希望入力期限: ${prevYear}年${prevMonth}月${deadlineDay}日${deadlineTime}まで`;
+          deadlineInfo.style.display = 'block';
+          document.getElementById('submitBtn').disabled = false;
         } else {
           // 締切チェック無効時は締切情報を非表示
           deadlineInfo.style.display = 'none';
@@ -1593,7 +1598,20 @@
         const year = cur.getFullYear();
         const month = cur.getMonth() + 1;
 
-        // 第1案存在チェック
+        // 1. 締切チェック（最優先）
+        if (isDeadlinePassed(year, month, getEmploymentType())) {
+          const prevMonth = month === 1 ? 12 : month - 1;
+          const prevYear = month === 1 ? year - 1 : year;
+          const setting = deadlineSettingsMap.get(getEmploymentType());
+          const deadlineDay = setting?.deadline_day || 10;
+          const deadlineTime = setting?.deadline_time || '12:00';
+          alert(
+            `${year}年${month}月のシフト希望入力期限は${prevYear}年${prevMonth}月${deadlineDay}日${deadlineTime}で終了しました`
+          );
+          return;
+        }
+
+        // 2. 第1案存在チェック
         if (role === 'part' && !firstPlanExists) {
           alert(
             `${year}年${month}月の第1案がまだ作成されていません。第1案が作成されるまでお待ちください。`
@@ -1603,19 +1621,6 @@
         if (role === 'emp' && firstPlanWorkDays.length === 0) {
           alert(
             `${year}年${month}月の第1案がまだ作成されていません。第1案が作成されるまでお待ちください。`
-          );
-          return;
-        }
-
-        // 締切チェック
-        if (isDeadlinePassed(year, month, getEmploymentType())) {
-          const prevMonth = month === 1 ? 12 : month - 1;
-          const prevYear = month === 1 ? year - 1 : year;
-          const setting = deadlineSettingsMap.get(getEmploymentType());
-          const deadlineDay = setting?.deadline_day || 10;
-          const deadlineTime = setting?.deadline_time || '12:00';
-          alert(
-            `${year}年${month}月のシフト希望入力期限は${prevYear}年${prevMonth}月${deadlineDay}日${deadlineTime}で終了しました`
           );
           return;
         }

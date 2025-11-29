@@ -466,6 +466,7 @@
       let rolesMap = new Map(); // role_code -> role_id のマッピング
       let deadlineSettingsMap = new Map(); // employment_type -> {deadline_day, deadline_time, is_enabled}
       let firstPlanWorkDays = []; // 社員用: 第一案の出勤日リスト (YYYY-MM-DD形式)
+      let firstPlanExists = false; // アルバイト用: 第1案が存在するかどうか
 
       // ====== 時刻表示フォーマット ======
       /**
@@ -696,6 +697,48 @@
         updateRoleInfo();
       }
 
+      // ====== 第1案存在チェック（アルバイト用） ======
+      async function checkFirstPlanExists() {
+        if (!selectedStaff) {
+          firstPlanExists = false;
+          return;
+        }
+
+        const year = cur.getFullYear();
+        const month = cur.getMonth() + 1;
+
+        try {
+          const plansRes = await fetch(
+            `${API_BASE}/api/shifts/plans?tenant_id=${TENANT_ID}&store_id=${selectedStaff.store_id}&year=${year}&month=${month}`
+          );
+          const plansData = await plansRes.json();
+
+          if (!plansData.success) {
+            firstPlanExists = false;
+            console.warn(`${year}年${month}月のプラン取得に失敗しました`);
+            return;
+          }
+
+          // plan_type='FIRST' のプランが存在するかチェック
+          const firstPlan = plansData.data.find(
+            plan => plan.plan_type === 'FIRST'
+          );
+
+          firstPlanExists = !!firstPlan;
+
+          if (firstPlanExists) {
+            console.log(
+              `${year}年${month}月の第1案が存在します（plan_id: ${firstPlan.plan_id}）`
+            );
+          } else {
+            console.warn(`${year}年${month}月の第1案が未作成です`);
+          }
+        } catch (error) {
+          console.error('第1案存在チェックエラー:', error);
+          firstPlanExists = false;
+        }
+      }
+
       // ====== 店舗セレクトボックス生成 ======
       function populateStoreSelect() {
         const select = document.getElementById('storeSelect');
@@ -751,8 +794,12 @@
         const employmentType = selectedStaff.employment_type;
         role = determineRoleFromEmploymentType(employmentType);
 
-        // 社員の場合、第一案データを取得
-        await loadFirstPlanIfEmployee();
+        // 第1案の存在チェック（社員は自分のシフトも取得、アルバイトは存在のみ）
+        if (role === 'emp') {
+          await loadFirstPlanIfEmployee();
+        } else {
+          await checkFirstPlanExists();
+        }
 
         // スタッフ情報表示
         const staffInfo = document.getElementById('staffInfo');
@@ -882,8 +929,12 @@
             };
             role = determineRoleFromEmploymentType(data.data.employment_type);
 
-            // 社員の場合、第一案データを取得
-            await loadFirstPlanIfEmployee();
+            // 第1案の存在チェック（社員は自分のシフトも取得、アルバイトは存在のみ）
+            if (role === 'emp') {
+              await loadFirstPlanIfEmployee();
+            } else {
+              await checkFirstPlanExists();
+            }
 
             // スタッフ情報を表示（セレクトボックスは非表示）
             document.getElementById('storeSelect').parentElement.style.display =
@@ -1217,7 +1268,11 @@
       document.getElementById('prevMonth').onclick = async () => {
         cur.setMonth(cur.getMonth() - 1);
         selected.clear();
-        await loadFirstPlanIfEmployee();
+        if (role === 'emp') {
+          await loadFirstPlanIfEmployee();
+        } else {
+          await checkFirstPlanExists();
+        }
         await loadExistingPreferences();
         renderCal();
         refreshTips();
@@ -1225,7 +1280,11 @@
       document.getElementById('nextMonth').onclick = async () => {
         cur.setMonth(cur.getMonth() + 1);
         selected.clear();
-        await loadFirstPlanIfEmployee();
+        if (role === 'emp') {
+          await loadFirstPlanIfEmployee();
+        } else {
+          await checkFirstPlanExists();
+        }
         await loadExistingPreferences();
         renderCal();
         refreshTips();
@@ -1362,9 +1421,24 @@
       }
 
       function toggleSelect(key, cell, label) {
-        // 締切チェック
         const year = cur.getFullYear();
         const month = cur.getMonth() + 1;
+
+        // 第1案存在チェック
+        if (role === 'part' && !firstPlanExists) {
+          alert(
+            `${year}年${month}月の第1案がまだ作成されていません。第1案が作成されるまでお待ちください。`
+          );
+          return;
+        }
+        if (role === 'emp' && firstPlanWorkDays.length === 0) {
+          alert(
+            `${year}年${month}月の第1案がまだ作成されていません。第1案が作成されるまでお待ちください。`
+          );
+          return;
+        }
+
+        // 締切チェック
         if (isDeadlinePassed(year, month, getEmploymentType())) {
           const prevMonth = month === 1 ? 12 : month - 1;
           const prevYear = month === 1 ? year - 1 : year;
@@ -1434,10 +1508,36 @@
           return;
         }
 
+        const year = cur.getFullYear();
+        const month = cur.getMonth() + 1;
+
+        // 第1案の存在チェック（アルバイトの場合）
+        if (role === 'part' && !firstPlanExists) {
+          deadlineInfo.innerHTML = `⏳ <strong>${year}年${month}月の第1案がまだ作成されていません</strong><br>第1案が作成されるまでシフト希望の入力はできません。`;
+          deadlineInfo.style.display = 'block';
+          deadlineInfo.style.background = '#e3f2fd';
+          document.getElementById('submitBtn').disabled = true;
+          tip.innerHTML = '第1案の作成をお待ちください';
+          block.style.display = 'none';
+          return;
+        }
+
+        // 第1案の存在チェック（社員の場合）
+        if (role === 'emp' && firstPlanWorkDays.length === 0) {
+          deadlineInfo.innerHTML = `⏳ <strong>${year}年${month}月の第1案がまだ作成されていません</strong><br>第1案が作成されるまで休み希望の入力はできません。`;
+          deadlineInfo.style.display = 'block';
+          deadlineInfo.style.background = '#e3f2fd';
+          document.getElementById('submitBtn').disabled = true;
+          tip.innerHTML = '第1案の作成をお待ちください';
+          block.style.display = 'none';
+          return;
+        }
+
+        // 第1案が存在する場合は背景色を戻す
+        deadlineInfo.style.background = '#fff3cd';
+
         // 締切情報の表示
         if (ENABLE_DEADLINE_CHECK) {
-          const year = cur.getFullYear();
-          const month = cur.getMonth() + 1;
           const isPastDeadline = isDeadlinePassed(
             year,
             month,
@@ -1492,6 +1592,20 @@
       document.getElementById('submitBtn').onclick = async () => {
         const year = cur.getFullYear();
         const month = cur.getMonth() + 1;
+
+        // 第1案存在チェック
+        if (role === 'part' && !firstPlanExists) {
+          alert(
+            `${year}年${month}月の第1案がまだ作成されていません。第1案が作成されるまでお待ちください。`
+          );
+          return;
+        }
+        if (role === 'emp' && firstPlanWorkDays.length === 0) {
+          alert(
+            `${year}年${month}月の第1案がまだ作成されていません。第1案が作成されるまでお待ちください。`
+          );
+          return;
+        }
 
         // 締切チェック
         if (isDeadlinePassed(year, month, getEmploymentType())) {

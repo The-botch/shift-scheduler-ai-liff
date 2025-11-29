@@ -462,9 +462,11 @@
       cur.setDate(1); // 月の先頭
       let selected = new Map(); // key=YYYY-MM-DD, val={type:'part'|'emp', start,end,label}
       let currentPattern = PATTERNS[0];
-      let employmentTypesMap = new Map(); // employment_code -> {employment_name, payment_type}
+      let employmentTypesMap = new Map(); // employment_code -> {employment_name}
       let rolesMap = new Map(); // role_code -> role_id のマッピング
+      let deadlineSettingsMap = new Map(); // employment_type -> {deadline_day, deadline_time, is_enabled}
       let firstPlanWorkDays = []; // 社員用: 第一案の出勤日リスト (YYYY-MM-DD形式)
+      let firstPlanExists = false; // アルバイト用: 第1案が存在するかどうか
 
       // ====== 時刻表示フォーマット ======
       /**
@@ -481,41 +483,71 @@
 
       // ====== 締切判定 ======
       /**
-       * N月のシフト希望入力締切をチェック
-       * 締切: N-1月の10日23:59まで
+       * N月のシフト希望入力締切をチェック（雇用形態別）
        * @param {number} year - 対象年
        * @param {number} month - 対象月 (1-12)
-       * @returns {boolean} true=締切過ぎている, false=まだ入力可能
+       * @param {string} employmentType - 雇用形態 ('FULL_TIME', 'PART_TIME')
+       * @returns {boolean} true=締切過ぎている（または期間外）, false=まだ入力可能
        */
-      function isDeadlinePassed(year, month) {
+      function isDeadlinePassed(year, month, employmentType) {
         // 締切チェックが無効の場合は常に入力可能
         if (!ENABLE_DEADLINE_CHECK) {
           return false;
         }
 
-        const now = new Date();
-
-        // N月の締切 = N-1月の10日23:59
-        let deadlineYear = year;
-        let deadlineMonth = month - 1;
-
-        // 1月の場合は前年12月が締切月
-        if (deadlineMonth === 0) {
-          deadlineYear--;
-          deadlineMonth = 12;
+        // employmentTypeが指定されていない場合は従来のロジック（後方互換性）
+        if (!employmentType) {
+          console.warn('employmentType未指定、デフォルト期限を使用');
+          employmentType = 'PART_TIME'; // デフォルトはアルバイト
         }
 
-        // 締切日時: N-1月10日23:59:59
-        const deadline = new Date(
-          deadlineYear,
-          deadlineMonth - 1,
-          10,
-          23,
-          59,
+        const setting = deadlineSettingsMap.get(employmentType);
+
+        // 期限設定が無効の場合は常に入力可能
+        if (!setting || !setting.is_enabled) {
+          return false;
+        }
+
+        const now = new Date();
+        let periodYear = year;
+        let periodMonth = month - 1;
+
+        // 1月の場合は前年12月が締切月
+        if (periodMonth === 0) {
+          periodYear--;
+          periodMonth = 12;
+        }
+
+        // start_dayがNULLでない場合のみ開始日チェック
+        if (setting.start_day !== null && setting.start_day !== undefined) {
+          const startDate = new Date(
+            periodYear,
+            periodMonth - 1,
+            setting.start_day,
+            0,
+            0,
+            0
+          );
+
+          // まだ入力期間前
+          if (now < startDate) {
+            return true;
+          }
+        }
+
+        // 締切日チェック
+        // deadline_time を "HH:MM" 形式からパース
+        const [hour, minute] = setting.deadline_time.split(':').map(Number);
+        const endDate = new Date(
+          periodYear,
+          periodMonth - 1,
+          setting.deadline_day,
+          hour,
+          minute,
           59
         );
 
-        return now > deadline;
+        return now > endDate;
       }
 
       // ====== スタッフと店舗データ読み込み ======
@@ -556,7 +588,6 @@
             data.data.forEach(empType => {
               employmentTypesMap.set(empType.employment_code, {
                 employment_name: empType.employment_name,
-                payment_type: empType.payment_type,
               });
             });
           }
@@ -565,30 +596,59 @@
         }
       }
 
+      // ====== 期限設定読み込み ======
+      async function loadDeadlineSettings() {
+        try {
+          const res = await fetch(
+            `${API_BASE}/api/liff/deadline-settings?tenant_id=${TENANT_ID}`
+          );
+          const data = await res.json();
+
+          if (data.success) {
+            data.data.forEach(setting => {
+              deadlineSettingsMap.set(setting.employment_type, {
+                deadline_day: setting.deadline_day,
+                deadline_time: setting.deadline_time || '12:00',
+                is_enabled: setting.is_enabled,
+              });
+            });
+            console.log('期限設定読み込み完了:', deadlineSettingsMap);
+          }
+        } catch (error) {
+          console.error('期限設定読み込みエラー:', error);
+          // フォールバック: デフォルト値を使用
+          deadlineSettingsMap.set('FULL_TIME', {
+            deadline_day: 10,
+            deadline_time: '12:00',
+            is_enabled: true,
+          });
+          deadlineSettingsMap.set('PART_TIME', {
+            deadline_day: 15,
+            deadline_time: '12:00',
+            is_enabled: true,
+          });
+        }
+      }
+
+      // ====== 雇用形態を取得 ======
+      function getEmploymentType() {
+        if (!selectedStaff || !selectedStaff.employment_type) {
+          return 'PART_TIME'; // デフォルト
+        }
+        return selectedStaff.employment_type;
+      }
+
       // ====== 雇用形態から役割を判定 ======
       function determineRoleFromEmploymentType(employmentTypeCode) {
-        const empType = employmentTypesMap.get(employmentTypeCode);
-        if (!empType) {
-          // デフォルトは従来のロジック（念のため）
-          return employmentTypeCode === 'PART_TIME' ||
-            employmentTypeCode === 'PART'
-            ? 'part'
-            : 'emp';
-        }
-        // payment_typeで判定: HOURLYならアルバイト、それ以外（MONTHLYなど）は社員
-        return empType.payment_type === 'HOURLY' ? 'part' : 'emp';
+        // employment_typeで直接判定
+        return employmentTypeCode === 'PART_TIME' ? 'part' : 'emp';
       }
 
       // ====== 雇用形態から役職IDを判定 ======
       function determineRoleIdFromEmploymentType(employmentTypeCode) {
-        const empType = employmentTypesMap.get(employmentTypeCode);
-        if (!empType) {
-          console.warn('雇用形態が見つかりません:', employmentTypeCode);
-          return null;
-        }
-
-        // payment_typeで判定: HOURLYならSTAFF、それ以外（MONTHLYなど）はSENIOR
-        const roleCode = empType.payment_type === 'HOURLY' ? 'STAFF' : 'SENIOR';
+        // employment_typeで直接判定
+        const roleCode =
+          employmentTypeCode === 'PART_TIME' ? 'STAFF' : 'SENIOR';
         const roleId = rolesMap.get(roleCode);
 
         if (!roleId) {
@@ -596,9 +656,6 @@
           return null;
         }
 
-        console.log(
-          `雇用形態: ${employmentTypeCode} -> 役職コード: ${roleCode} -> 役職ID: ${roleId}`
-        );
         return roleId;
       }
 
@@ -638,6 +695,48 @@
 
         // UIを更新
         updateRoleInfo();
+      }
+
+      // ====== 第1案存在チェック（アルバイト用） ======
+      async function checkFirstPlanExists() {
+        if (!selectedStaff) {
+          firstPlanExists = false;
+          return;
+        }
+
+        const year = cur.getFullYear();
+        const month = cur.getMonth() + 1;
+
+        try {
+          const plansRes = await fetch(
+            `${API_BASE}/api/shifts/plans?tenant_id=${TENANT_ID}&store_id=${selectedStaff.store_id}&year=${year}&month=${month}`
+          );
+          const plansData = await plansRes.json();
+
+          if (!plansData.success) {
+            firstPlanExists = false;
+            console.warn(`${year}年${month}月のプラン取得に失敗しました`);
+            return;
+          }
+
+          // plan_type='FIRST' のプランが存在するかチェック
+          const firstPlan = plansData.data.find(
+            plan => plan.plan_type === 'FIRST'
+          );
+
+          firstPlanExists = !!firstPlan;
+
+          if (firstPlanExists) {
+            console.log(
+              `${year}年${month}月の第1案が存在します（plan_id: ${firstPlan.plan_id}）`
+            );
+          } else {
+            console.warn(`${year}年${month}月の第1案が未作成です`);
+          }
+        } catch (error) {
+          console.error('第1案存在チェックエラー:', error);
+          firstPlanExists = false;
+        }
       }
 
       // ====== 店舗セレクトボックス生成 ======
@@ -695,8 +794,12 @@
         const employmentType = selectedStaff.employment_type;
         role = determineRoleFromEmploymentType(employmentType);
 
-        // 社員の場合、第一案データを取得
-        await loadFirstPlanIfEmployee();
+        // 第1案の存在チェック（社員は自分のシフトも取得、アルバイトは存在のみ）
+        if (role === 'emp') {
+          await loadFirstPlanIfEmployee();
+        } else {
+          await checkFirstPlanExists();
+        }
 
         // スタッフ情報表示
         const staffInfo = document.getElementById('staffInfo');
@@ -826,8 +929,12 @@
             };
             role = determineRoleFromEmploymentType(data.data.employment_type);
 
-            // 社員の場合、第一案データを取得
-            await loadFirstPlanIfEmployee();
+            // 第1案の存在チェック（社員は自分のシフトも取得、アルバイトは存在のみ）
+            if (role === 'emp') {
+              await loadFirstPlanIfEmployee();
+            } else {
+              await checkFirstPlanExists();
+            }
 
             // スタッフ情報を表示（セレクトボックスは非表示）
             document.getElementById('storeSelect').parentElement.style.display =
@@ -1161,7 +1268,11 @@
       document.getElementById('prevMonth').onclick = async () => {
         cur.setMonth(cur.getMonth() - 1);
         selected.clear();
-        await loadFirstPlanIfEmployee();
+        if (role === 'emp') {
+          await loadFirstPlanIfEmployee();
+        } else {
+          await checkFirstPlanExists();
+        }
         await loadExistingPreferences();
         renderCal();
         refreshTips();
@@ -1169,7 +1280,11 @@
       document.getElementById('nextMonth').onclick = async () => {
         cur.setMonth(cur.getMonth() + 1);
         selected.clear();
-        await loadFirstPlanIfEmployee();
+        if (role === 'emp') {
+          await loadFirstPlanIfEmployee();
+        } else {
+          await checkFirstPlanExists();
+        }
         await loadExistingPreferences();
         renderCal();
         refreshTips();
@@ -1234,7 +1349,11 @@
         ymLabel.textContent = `${year}年 ${month}月`;
 
         // 締切判定
-        const isPastDeadline = isDeadlinePassed(year, month);
+        const isPastDeadline = isDeadlinePassed(
+          year,
+          month,
+          getEmploymentType()
+        );
 
         // グリッド
         calGrid.innerHTML = '';
@@ -1302,13 +1421,32 @@
       }
 
       function toggleSelect(key, cell, label) {
-        // 締切チェック
         const year = cur.getFullYear();
         const month = cur.getMonth() + 1;
-        if (isDeadlinePassed(year, month)) {
+
+        // 1. 締切チェック（最優先）
+        if (isDeadlinePassed(year, month, getEmploymentType())) {
           const prevMonth = month === 1 ? 12 : month - 1;
+          const prevYear = month === 1 ? year - 1 : year;
+          const setting = deadlineSettingsMap.get(getEmploymentType());
+          const deadlineDay = setting?.deadline_day || 10;
+          const deadlineTime = setting?.deadline_time || '12:00';
           alert(
-            `${year}年${month}月のシフト希望入力期限は${month === 1 ? year - 1 : year}年${prevMonth}月10日23:59で終了しました`
+            `${year}年${month}月のシフト希望入力期限は${prevYear}年${prevMonth}月${deadlineDay}日${deadlineTime}で終了しました`
+          );
+          return;
+        }
+
+        // 2. 第1案存在チェック
+        if (role === 'part' && !firstPlanExists) {
+          alert(
+            `${year}年${month}月の第1案がまだ作成されていません。第1案が作成されるまでお待ちください。`
+          );
+          return;
+        }
+        if (role === 'emp' && firstPlanWorkDays.length === 0) {
+          alert(
+            `${year}年${month}月の第1案がまだ作成されていません。第1案が作成されるまでお待ちください。`
           );
           return;
         }
@@ -1370,25 +1508,66 @@
           return;
         }
 
-        // 締切情報の表示
+        const year = cur.getFullYear();
+        const month = cur.getMonth() + 1;
+
+        // 1. 締切チェック（最優先）
         if (ENABLE_DEADLINE_CHECK) {
-          const year = cur.getFullYear();
-          const month = cur.getMonth() + 1;
-          const isPastDeadline = isDeadlinePassed(year, month);
+          const isPastDeadline = isDeadlinePassed(
+            year,
+            month,
+            getEmploymentType()
+          );
 
           if (isPastDeadline) {
             const prevMonth = month === 1 ? 12 : month - 1;
             const prevYear = month === 1 ? year - 1 : year;
-            deadlineInfo.innerHTML = `⚠️ <strong>${year}年${month}月のシフト希望入力期限は${prevYear}年${prevMonth}月10日23:59で終了しました</strong><br>既存の希望は閲覧できますが、編集・新規登録はできません。`;
+            const setting = deadlineSettingsMap.get(getEmploymentType());
+            const deadlineDay = setting?.deadline_day || 10;
+            const deadlineTime = setting?.deadline_time || '12:00';
+            deadlineInfo.innerHTML = `⚠️ <strong>${year}年${month}月のシフト希望入力期限は${prevYear}年${prevMonth}月${deadlineDay}日${deadlineTime}で終了しました</strong><br>既存の希望は閲覧できますが、編集・新規登録はできません。`;
             deadlineInfo.style.display = 'block';
+            deadlineInfo.style.background = '#fff3cd';
             document.getElementById('submitBtn').disabled = true;
-          } else {
-            const prevMonth = month === 1 ? 12 : month - 1;
-            const prevYear = month === 1 ? year - 1 : year;
-            deadlineInfo.innerHTML = `📅 ${year}年${month}月のシフト希望入力期限: ${prevYear}年${prevMonth}月10日23:59まで`;
-            deadlineInfo.style.display = 'block';
-            document.getElementById('submitBtn').disabled = false;
+            tip.innerHTML = '入力期限が過ぎています';
+            block.style.display = 'none';
+            return;
           }
+        }
+
+        // 2. 第1案の存在チェック（アルバイトの場合）
+        if (role === 'part' && !firstPlanExists) {
+          deadlineInfo.innerHTML = `⏳ <strong>${year}年${month}月の第1案がまだ作成されていません</strong><br>第1案が作成されるまでシフト希望の入力はできません。`;
+          deadlineInfo.style.display = 'block';
+          deadlineInfo.style.background = '#e3f2fd';
+          document.getElementById('submitBtn').disabled = true;
+          tip.innerHTML = '第1案の作成をお待ちください';
+          block.style.display = 'none';
+          return;
+        }
+
+        // 2. 第1案の存在チェック（社員の場合）
+        if (role === 'emp' && firstPlanWorkDays.length === 0) {
+          deadlineInfo.innerHTML = `⏳ <strong>${year}年${month}月の第1案がまだ作成されていません</strong><br>第1案が作成されるまで休み希望の入力はできません。`;
+          deadlineInfo.style.display = 'block';
+          deadlineInfo.style.background = '#e3f2fd';
+          document.getElementById('submitBtn').disabled = true;
+          tip.innerHTML = '第1案の作成をお待ちください';
+          block.style.display = 'none';
+          return;
+        }
+
+        // 3. 締切前かつ第1案あり → 通常表示
+        deadlineInfo.style.background = '#fff3cd';
+        if (ENABLE_DEADLINE_CHECK) {
+          const prevMonth = month === 1 ? 12 : month - 1;
+          const prevYear = month === 1 ? year - 1 : year;
+          const setting = deadlineSettingsMap.get(getEmploymentType());
+          const deadlineDay = setting?.deadline_day || 10;
+          const deadlineTime = setting?.deadline_time || '12:00';
+          deadlineInfo.innerHTML = `📅 ${year}年${month}月のシフト希望入力期限: ${prevYear}年${prevMonth}月${deadlineDay}日${deadlineTime}まで`;
+          deadlineInfo.style.display = 'block';
+          document.getElementById('submitBtn').disabled = false;
         } else {
           // 締切チェック無効時は締切情報を非表示
           deadlineInfo.style.display = 'none';
@@ -1419,12 +1598,29 @@
         const year = cur.getFullYear();
         const month = cur.getMonth() + 1;
 
-        // 締切チェック
-        if (isDeadlinePassed(year, month)) {
+        // 1. 締切チェック（最優先）
+        if (isDeadlinePassed(year, month, getEmploymentType())) {
           const prevMonth = month === 1 ? 12 : month - 1;
           const prevYear = month === 1 ? year - 1 : year;
+          const setting = deadlineSettingsMap.get(getEmploymentType());
+          const deadlineDay = setting?.deadline_day || 10;
+          const deadlineTime = setting?.deadline_time || '12:00';
           alert(
-            `${year}年${month}月のシフト希望入力期限は${prevYear}年${prevMonth}月10日23:59で終了しました`
+            `${year}年${month}月のシフト希望入力期限は${prevYear}年${prevMonth}月${deadlineDay}日${deadlineTime}で終了しました`
+          );
+          return;
+        }
+
+        // 2. 第1案存在チェック
+        if (role === 'part' && !firstPlanExists) {
+          alert(
+            `${year}年${month}月の第1案がまだ作成されていません。第1案が作成されるまでお待ちください。`
+          );
+          return;
+        }
+        if (role === 'emp' && firstPlanWorkDays.length === 0) {
+          alert(
+            `${year}年${month}月の第1案がまだ作成されていません。第1案が作成されるまでお待ちください。`
           );
           return;
         }
@@ -1508,6 +1704,7 @@
       // 初期化
       (async function () {
         await initLIFF();
+        await loadDeadlineSettings(); // 期限設定を読み込み
         // MVP: パターン入力を廃止 (Issue #103)
         // renderPatterns();
         renderCal();

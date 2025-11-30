@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>スタッフ向け：アカウント登録の手順</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+          'Hiragino Sans', sans-serif;
+        background: #f5f5f5;
+        color: #333;
+        line-height: 1.6;
+      }
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      .header {
+        text-align: center;
+        margin-bottom: 30px;
+      }
+      .header h1 {
+        color: #06c755;
+        font-size: 1.5rem;
+        margin-bottom: 10px;
+      }
+      .video-section {
+        background: #1a2234;
+        border-radius: 12px;
+        padding: 40px;
+        text-align: center;
+        margin-bottom: 30px;
+      }
+      .video-placeholder {
+        color: white;
+      }
+      .video-placeholder .play-icon {
+        width: 60px;
+        height: 60px;
+        background: #06c755;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 15px;
+      }
+      .video-placeholder .play-icon::after {
+        content: '';
+        border-left: 20px solid white;
+        border-top: 12px solid transparent;
+        border-bottom: 12px solid transparent;
+        margin-left: 5px;
+      }
+      .video-placeholder h2 {
+        font-size: 1.2rem;
+        margin-bottom: 5px;
+      }
+      .video-placeholder p {
+        font-size: 0.9rem;
+        color: #888;
+      }
+      .steps-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+      }
+      .step-card {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      }
+      .step-number {
+        width: 32px;
+        height: 32px;
+        background: #06c755;
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        margin: 0 auto 15px;
+      }
+      .step-title {
+        text-align: center;
+        font-weight: bold;
+        color: #06c755;
+        margin-bottom: 10px;
+        font-size: 1.1rem;
+      }
+      .step-description {
+        text-align: center;
+        font-size: 0.9rem;
+        color: #666;
+        margin-bottom: 15px;
+      }
+      .step-description ul {
+        text-align: left;
+        padding-left: 20px;
+        margin-top: 8px;
+      }
+      .step-description li {
+        margin-bottom: 4px;
+      }
+      .screenshot-placeholder {
+        background: #f0f0f0;
+        border-radius: 8px;
+        padding: 40px 20px;
+        text-align: center;
+        color: #999;
+        font-size: 0.85rem;
+        border: 2px dashed #ddd;
+      }
+      .screenshot-placeholder.has-image {
+        padding: 0;
+        border: none;
+        background: transparent;
+      }
+      .screenshot-placeholder img {
+        max-width: 100%;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+      .notes-section {
+        background: #fff3cd;
+        border-radius: 12px;
+        padding: 20px;
+        margin-top: 30px;
+      }
+      .notes-section h3 {
+        color: #856404;
+        margin-bottom: 10px;
+        font-size: 1rem;
+      }
+      .notes-section ul {
+        color: #856404;
+        padding-left: 20px;
+        font-size: 0.9rem;
+      }
+      .notes-section li {
+        margin-bottom: 5px;
+      }
+      .footer {
+        text-align: center;
+        margin-top: 30px;
+        color: #999;
+        font-size: 0.8rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <!-- ヘッダー -->
+      <div class="header">
+        <h1>スタッフ向け：アカウント登録の手順</h1>
+      </div>
+
+      <!-- 動画セクション -->
+      <div class="video-section">
+        <h2 style="color: white; margin-bottom: 15px">
+          アカウント登録の説明動画
+        </h2>
+        <video controls style="max-width: 100%; border-radius: 8px">
+          <source src="videos/user-registration.mp4" type="video/mp4" />
+          お使いのブラウザは動画再生に対応していません。
+        </video>
+      </div>
+
+      <!-- ステップカード -->
+      <div class="steps-container">
+        <!-- ステップ1 -->
+        <div class="step-card">
+          <div class="step-number">1</div>
+          <div class="step-title">リンクをタップ</div>
+          <div class="step-description">
+            グループ内のリンクをタップして<br />
+            アプリを開きます
+          </div>
+          <div class="screenshot-placeholder has-image">
+            <img src="images/step1-line-chat.png.jpg" alt="リンクをタップ" />
+          </div>
+        </div>
+
+        <!-- ステップ2 -->
+        <div class="step-card">
+          <div class="step-number">2</div>
+          <div class="step-title">LINEログイン</div>
+          <div class="step-description">
+            「ログイン」をタップして<br />
+            LINEアカウントで認証
+          </div>
+          <div class="screenshot-placeholder has-image">
+            <img src="images/step2-line-login.png.jpg" alt="LINEログイン画面" />
+          </div>
+        </div>
+
+        <!-- ステップ3 -->
+        <div class="step-card">
+          <div class="step-number">3</div>
+          <div class="step-title">認証を許可</div>
+          <div class="step-description">
+            「許可する」をタップして<br />
+            アプリへのアクセスを許可
+          </div>
+          <div class="screenshot-placeholder has-image">
+            <img
+              src="images/step3-auth-permission.png.jpg"
+              alt="認証許可画面"
+            />
+          </div>
+        </div>
+
+        <!-- ステップ4 -->
+        <div class="step-card">
+          <div class="step-number">4</div>
+          <div class="step-title">スタッフ情報入力</div>
+          <div class="step-description">
+            以下の情報を入力してください：
+            <ul>
+              <li>🏪 店舗（選択）</li>
+              <li>👤 お名前（入力）</li>
+              <li>💼 雇用形態（選択）</li>
+              <li>📧 メールアドレス（任意）</li>
+              <li>📱 電話番号（任意）</li>
+            </ul>
+          </div>
+          <div class="screenshot-placeholder has-image">
+            <img
+              src="images/step4-staff-input.png.jpg"
+              alt="スタッフ情報入力画面"
+            />
+          </div>
+        </div>
+
+        <!-- ステップ5 -->
+        <div class="step-card">
+          <div class="step-number">5</div>
+          <div class="step-title">登録完了！</div>
+          <div class="step-description">
+            これで準備完了です。<br />
+            シフト希望の入力ができるようになります。
+          </div>
+          <div class="screenshot-placeholder has-image">
+            <img src="images/step5-complete.png.jpg" alt="登録完了画面" />
+          </div>
+        </div>
+      </div>
+
+      <!-- 注意事項 -->
+      <div class="notes-section">
+        <h3>ご注意</h3>
+        <ul>
+          <li>登録は1つのLINEアカウントにつき1回のみ可能です</li>
+          <li>登録情報に誤りがある場合は、管理者にお問い合わせください</li>
+          <li>シフト希望の入力は、第1案が作成された後から可能になります</li>
+        </ul>
+      </div>
+
+      <!-- フッター -->
+      <div class="footer">
+        <p>お問い合わせ：管理者までご連絡ください</p>
+      </div>
+    </div>
+  </body>
+</html>

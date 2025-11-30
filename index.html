@@ -915,6 +915,22 @@
 
       // ====== LIFF ======
       async function initLIFF() {
+        // 期限切れトークンをクリア（iOS対策）
+        try {
+          const storageKey = `LIFF_STORE:${LIFF_ID}:decodedIDToken`;
+          const stored = localStorage.getItem(storageKey);
+          if (stored) {
+            const decoded = JSON.parse(stored);
+            if (decoded.exp && decoded.exp * 1000 < Date.now()) {
+              console.log('期限切れトークンをクリアします');
+              localStorage.removeItem(storageKey);
+              localStorage.removeItem(`LIFF_STORE:${LIFF_ID}:accessToken`);
+            }
+          }
+        } catch (e) {
+          console.warn('トークンクリア処理でエラー:', e);
+        }
+
         await liff.init({ liffId: LIFF_ID });
         await liff.ready; // LIFF初期化完了を待機
 
@@ -922,11 +938,19 @@
         await loadEmploymentTypes();
 
         if (!liff.isLoggedIn()) {
-          // ログイン前はシフト入力UI全体を非表示
+          // LINEアプリ内で未ログインの場合は自動ログイン
+          if (liff.isInClient()) {
+            console.log(
+              'LINEアプリ内で未ログイン状態。自動ログインを試みます。'
+            );
+            liff.login();
+            return;
+          }
+
+          // 外部ブラウザの場合はログインボタンを表示
           const cards = document.querySelectorAll('.card');
           cards.forEach((card, index) => {
             if (index > 0) {
-              // 最初のカード（ヘッダー）以外を非表示
               card.style.display = 'none';
             }
           });

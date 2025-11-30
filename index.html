@@ -467,6 +467,7 @@
       let deadlineSettingsMap = new Map(); // employment_type -> {deadline_day, deadline_time, is_enabled}
       let firstPlanWorkDays = []; // 社員用: 第一案の出勤日リスト (YYYY-MM-DD形式)
       let firstPlanExists = false; // アルバイト用: 第1案が存在するかどうか
+      let firstPlanExistsForEmp = false; // 社員用: 第1案が存在するかどうか（シフト有無とは別）
 
       // ====== 時刻表示フォーマット ======
       /**
@@ -663,6 +664,7 @@
       async function loadFirstPlanIfEmployee() {
         if (role !== 'emp' || !selectedStaff) {
           firstPlanWorkDays = [];
+          firstPlanExistsForEmp = false;
           return;
         }
 
@@ -670,26 +672,61 @@
         const month = cur.getMonth() + 1;
 
         try {
+          // 1. まず第1案の存在をチェック
+          const plansRes = await fetch(
+            `${API_BASE}/api/shifts/plans?tenant_id=${TENANT_ID}&store_id=${selectedStaff.store_id}&year=${year}&month=${month}`
+          );
+          const plansData = await plansRes.json();
+
+          if (!plansData.success) {
+            firstPlanExistsForEmp = false;
+            firstPlanWorkDays = [];
+            console.warn(`${year}年${month}月のプラン取得に失敗しました`);
+            updateRoleInfo();
+            return;
+          }
+
+          const firstPlan = plansData.data.find(
+            plan => plan.plan_type === 'FIRST'
+          );
+          firstPlanExistsForEmp = !!firstPlan;
+
+          if (!firstPlanExistsForEmp) {
+            // 第1案が存在しない
+            firstPlanWorkDays = [];
+            console.warn(`${year}年${month}月の第1案が未作成です`);
+            updateRoleInfo();
+            return;
+          }
+
+          console.log(
+            `${year}年${month}月の第1案が存在します（plan_id: ${firstPlan.plan_id}）`
+          );
+
+          // 2. 第1案が存在する場合、このスタッフのシフトを取得
           const firstPlanRes = await fetch(
             `${API_BASE}/api/shifts/?tenant_id=${TENANT_ID}&store_id=${selectedStaff.store_id}&staff_id=${selectedStaff.staff_id}&year=${year}&month=${month}&plan_type=FIRST`
           );
           const firstPlanData = await firstPlanRes.json();
 
           if (!firstPlanData.success || firstPlanData.count === 0) {
-            // 第一案が未作成の場合、出勤日リストを空にする
+            // 第1案はあるがシフトなし
             firstPlanWorkDays = [];
-            console.warn(`${year}年${month}月の第1案が未作成です`);
+            console.warn(
+              `${year}年${month}月の第1案にあなたのシフトがありません`
+            );
           } else {
             // 出勤日リストを作成
             firstPlanWorkDays = firstPlanData.data.map(
               shift => shift.shift_date
             );
             console.log(
-              `${year}年${month}月の第1案: ${firstPlanWorkDays.length}日`
+              `${year}年${month}月の第1案: ${firstPlanWorkDays.length}日の出勤予定`
             );
           }
         } catch (error) {
           console.error('第一案取得エラー:', error);
+          firstPlanExistsForEmp = false;
           firstPlanWorkDays = [];
         }
 
@@ -989,16 +1026,23 @@
           // 時刻入力を表示
           if (timeBox) timeBox.style.display = 'block';
         } else {
-          // 社員の場合
-          if (firstPlanWorkDays.length === 0) {
-            // 第1案未作成
+          // 社員の場合：3パターンで分岐
+          if (!firstPlanExistsForEmp) {
+            // パターン1: 第1案が未作成
             roleInfo.style.background = '#fff3cd';
             roleInfo.innerHTML = `
           <strong style="color:#856404">⚠️ 社員</strong><br>
           第1案が未作成です。管理者にお問い合わせください。
         `;
+          } else if (firstPlanWorkDays.length === 0) {
+            // パターン2: 第1案はあるがシフトなし
+            roleInfo.style.background = '#e3f2fd';
+            roleInfo.innerHTML = `
+          <strong style="color:#1565c0">ℹ️ 社員</strong><br>
+          あなたの出勤予定がありません。管理者にお問い合わせください。
+        `;
           } else {
-            // 第1案あり
+            // パターン3: 通常（休み選択可能）
             roleInfo.style.background = 'var(--red-weak)';
             roleInfo.innerHTML = `
           <strong style="color:#b91c1c">🚫 社員</strong><br>
@@ -1444,11 +1488,19 @@
           );
           return;
         }
-        if (role === 'emp' && firstPlanWorkDays.length === 0) {
-          alert(
-            `${year}年${month}月の第1案がまだ作成されていません。第1案が作成されるまでお待ちください。`
-          );
-          return;
+        // 社員の場合：3パターン分岐
+        if (role === 'emp') {
+          if (!firstPlanExistsForEmp) {
+            alert(
+              `${year}年${month}月の第1案がまだ作成されていません。第1案が作成されるまでお待ちください。`
+            );
+            return;
+          } else if (firstPlanWorkDays.length === 0) {
+            alert(
+              `${year}年${month}月の第1案にあなたの出勤予定がありません。出勤予定が登録されるまでお待ちください。`
+            );
+            return;
+          }
         }
 
         // 解除
@@ -1546,15 +1598,28 @@
           return;
         }
 
-        // 2. 第1案の存在チェック（社員の場合）
-        if (role === 'emp' && firstPlanWorkDays.length === 0) {
-          deadlineInfo.innerHTML = `⏳ <strong>${year}年${month}月の第1案がまだ作成されていません</strong><br>第1案が作成されるまで休み希望の入力はできません。`;
-          deadlineInfo.style.display = 'block';
-          deadlineInfo.style.background = '#e3f2fd';
-          document.getElementById('submitBtn').disabled = true;
-          tip.innerHTML = '第1案の作成をお待ちください';
-          block.style.display = 'none';
-          return;
+        // 2. 第1案の存在チェック（社員の場合）：3パターン分岐
+        if (role === 'emp') {
+          if (!firstPlanExistsForEmp) {
+            // パターン1: 第1案が未作成
+            deadlineInfo.innerHTML = `⏳ <strong>${year}年${month}月の第1案がまだ作成されていません</strong><br>第1案が作成されるまで休み希望の入力はできません。`;
+            deadlineInfo.style.display = 'block';
+            deadlineInfo.style.background = '#fff3cd';
+            document.getElementById('submitBtn').disabled = true;
+            tip.innerHTML = '第1案の作成をお待ちください';
+            block.style.display = 'none';
+            return;
+          } else if (firstPlanWorkDays.length === 0) {
+            // パターン2: 第1案はあるがシフトなし
+            deadlineInfo.innerHTML = `ℹ️ <strong>${year}年${month}月の第1案にあなたの出勤予定がありません</strong><br>出勤予定が登録されるまでお待ちください。`;
+            deadlineInfo.style.display = 'block';
+            deadlineInfo.style.background = '#e3f2fd';
+            document.getElementById('submitBtn').disabled = true;
+            tip.innerHTML = '出勤予定の登録をお待ちください';
+            block.style.display = 'none';
+            return;
+          }
+          // パターン3: 通常（休み選択可能）→ 下の処理に進む
         }
 
         // 3. 締切前かつ第1案あり → 通常表示
@@ -1618,11 +1683,19 @@
           );
           return;
         }
-        if (role === 'emp' && firstPlanWorkDays.length === 0) {
-          alert(
-            `${year}年${month}月の第1案がまだ作成されていません。第1案が作成されるまでお待ちください。`
-          );
-          return;
+        // 社員の場合：3パターン分岐
+        if (role === 'emp') {
+          if (!firstPlanExistsForEmp) {
+            alert(
+              `${year}年${month}月の第1案がまだ作成されていません。第1案が作成されるまでお待ちください。`
+            );
+            return;
+          } else if (firstPlanWorkDays.length === 0) {
+            alert(
+              `${year}年${month}月の第1案にあなたの出勤予定がありません。出勤予定が登録されるまでお待ちください。`
+            );
+            return;
+          }
         }
 
         if (!selectedStaff) {

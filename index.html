@@ -916,6 +916,7 @@
       // ====== LIFF ======
       async function initLIFF() {
         await liff.init({ liffId: LIFF_ID });
+        await liff.ready; // LIFF初期化完了を待機
 
         // 雇用形態マスタを先に読み込み（役割判定に必要）
         await loadEmploymentTypes();
@@ -937,6 +938,14 @@
         }
         const p = await liff.getProfile();
         const idt = liff.getIDToken();
+
+        // IDトークンが取得できない場合は再ログイン
+        if (!idt) {
+          console.error('IDトークンの取得に失敗しました。再ログインします。');
+          liff.login();
+          return;
+        }
+
         window._login = { name: p.displayName, userId: p.userId, idToken: idt };
         document.getElementById('profileBox').textContent =
           `${p.displayName} さんとしてログイン中`;

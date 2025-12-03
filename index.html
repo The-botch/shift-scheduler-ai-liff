@@ -378,6 +378,36 @@
         ></div>
       </div>
 
+      <!-- 月次コメント入力 -->
+      <div class="card" style="margin-top: 12px" id="commentSection">
+        <div
+          class="section-title"
+          style="
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+          "
+        >
+          <span>今月のコメント（任意）</span>
+          <span id="commentCharCount" class="helper small">0/500</span>
+        </div>
+        <textarea
+          id="monthlyComment"
+          class="select"
+          style="
+            width: 100%;
+            min-height: 80px;
+            resize: vertical;
+            margin-top: 8px;
+          "
+          placeholder="シフトに関する希望や連絡事項があれば入力してください（例：土日は午後出勤希望、来月は試験期間のため少なめ希望など）"
+          maxlength="500"
+        ></textarea>
+        <div class="helper small" style="margin-top: 4px">
+          <span id="commentStatus"></span>
+        </div>
+      </div>
+
       <!-- 送信バー -->
       <div class="footerbar card" style="margin-top: 12px">
         <div class="flex">
@@ -468,6 +498,7 @@
       let firstPlanWorkDays = []; // 社員用: 第一案の出勤日リスト (YYYY-MM-DD形式)
       let firstPlanExists = false; // アルバイト用: 第1案が存在するかどうか
       let firstPlanExistsForEmp = false; // 社員用: 第1案が存在するかどうか（シフト有無とは別）
+      let monthlyCommentData = null; // 月次コメントデータ
 
       // ====== 時刻表示フォーマット ======
       /**
@@ -629,6 +660,122 @@
             is_enabled: true,
           });
         }
+      }
+
+      // ====== 月次コメント読み込み ======
+      async function loadMonthlyComment() {
+        if (!selectedStaff || !window._login) {
+          monthlyCommentData = null;
+          updateCommentUI();
+          return;
+        }
+
+        const year = cur.getFullYear();
+        const month = cur.getMonth() + 1;
+
+        try {
+          const res = await fetch(
+            `${API_BASE}/api/liff/monthly-submission?year=${year}&month=${month}`,
+            {
+              headers: {
+                Authorization: `Bearer ${window._login.idToken}`,
+              },
+            }
+          );
+          const data = await res.json();
+
+          if (data.success && data.data) {
+            monthlyCommentData = data.data;
+            document.getElementById('monthlyComment').value =
+              data.data.comment || '';
+          } else {
+            monthlyCommentData = null;
+            document.getElementById('monthlyComment').value = '';
+          }
+          updateCommentUI();
+        } catch (error) {
+          console.error('月次コメント取得エラー:', error);
+          monthlyCommentData = null;
+          updateCommentUI();
+        }
+      }
+
+      // ====== 月次コメント保存 ======
+      async function saveMonthlyComment() {
+        if (!selectedStaff || !window._login) {
+          return { success: false, error: 'スタッフ情報がありません' };
+        }
+
+        const year = cur.getFullYear();
+        const month = cur.getMonth() + 1;
+        const comment = document.getElementById('monthlyComment').value.trim();
+
+        // コメントが空で、既存データもない場合はスキップ
+        if (!comment && !monthlyCommentData) {
+          return { success: true, skipped: true };
+        }
+
+        try {
+          const res = await fetch(`${API_BASE}/api/liff/monthly-submission`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${window._login.idToken}`,
+            },
+            body: JSON.stringify({
+              year: year,
+              month: month,
+              comment: comment || null,
+            }),
+          });
+          const data = await res.json();
+
+          if (data.success) {
+            monthlyCommentData = data.data;
+            updateCommentStatus('保存しました', 'success');
+          }
+          return data;
+        } catch (error) {
+          console.error('月次コメント保存エラー:', error);
+          updateCommentStatus('保存に失敗しました', 'error');
+          return { success: false, error: error.message };
+        }
+      }
+
+      // ====== コメントUI更新 ======
+      function updateCommentUI() {
+        const textarea = document.getElementById('monthlyComment');
+        const charCount = document.getElementById('commentCharCount');
+        const section = document.getElementById('commentSection');
+
+        // スタッフ未選択時は非表示
+        if (!selectedStaff) {
+          section.style.display = 'none';
+          return;
+        }
+        section.style.display = 'block';
+
+        // 文字数カウント
+        const len = textarea.value.length;
+        charCount.textContent = `${len}/500`;
+        charCount.style.color = len > 450 ? 'var(--red)' : 'var(--muted)';
+      }
+
+      // ====== コメントステータス更新 ======
+      function updateCommentStatus(message, type) {
+        const status = document.getElementById('commentStatus');
+        status.textContent = message;
+        status.style.color =
+          type === 'success'
+            ? 'var(--green)'
+            : type === 'error'
+              ? 'var(--red)'
+              : 'var(--muted)';
+
+        // 3秒後にクリア
+        setTimeout(() => {
+          status.textContent = '';
+        }, 3000);
       }
 
       // ====== 雇用形態を取得 ======
@@ -1029,6 +1176,8 @@
 
             // 既存のシフト希望を読み込み
             await loadExistingPreferences();
+            // 月次コメントを読み込み
+            await loadMonthlyComment();
             renderCal();
             refreshTips();
           } else {
@@ -1351,6 +1500,7 @@
           await checkFirstPlanExists();
         }
         await loadExistingPreferences();
+        await loadMonthlyComment();
         renderCal();
         refreshTips();
       };
@@ -1363,6 +1513,7 @@
           await checkFirstPlanExists();
         }
         await loadExistingPreferences();
+        await loadMonthlyComment();
         renderCal();
         refreshTips();
       };
@@ -1736,69 +1887,98 @@
           return;
         }
 
-        if (selected.size === 0) {
-          alert('選択がありません');
+        const hasComment =
+          document.getElementById('monthlyComment').value.trim().length > 0;
+        const hasShifts = selected.size > 0;
+
+        // シフトもコメントもない場合はエラー
+        if (!hasShifts && !hasComment) {
+          alert('シフト希望またはコメントを入力してください');
           return;
         }
 
-        if (!confirm(`${selected.size}日分のシフト希望を送信しますか？`)) {
+        // 確認メッセージ
+        let confirmMsg = '';
+        if (hasShifts && hasComment) {
+          confirmMsg = `${selected.size}日分のシフト希望とコメントを送信しますか？`;
+        } else if (hasShifts) {
+          confirmMsg = `${selected.size}日分のシフト希望を送信しますか？`;
+        } else {
+          confirmMsg = 'コメントを送信しますか？';
+        }
+
+        if (!confirm(confirmMsg)) {
           return;
         }
 
         try {
-          // 選択された日付を1日1レコード形式の配列に変換
-          const preferences = [];
+          const results = [];
 
-          selected.forEach((value, key) => {
-            // key = "YYYY-MM-DD" 形式の日付
-            const pref = {
-              preference_date: key,
-              is_ng: value.type === 'emp', // 社員の場合はNG日
-              notes: '',
+          // シフト希望がある場合は送信
+          if (hasShifts) {
+            // 選択された日付を1日1レコード形式の配列に変換
+            const preferences = [];
+
+            selected.forEach((value, key) => {
+              // key = "YYYY-MM-DD" 形式の日付
+              const pref = {
+                preference_date: key,
+                is_ng: value.type === 'emp', // 社員の場合はNG日
+                notes: '',
+              };
+
+              // アルバイトの場合は時刻情報を追加
+              if (value.type === 'part') {
+                pref.start_time = value.start || null;
+                pref.end_time = value.end || null;
+              }
+
+              preferences.push(pref);
+            });
+
+            // 一括登録APIを使用
+            const requestBody = {
+              tenant_id: TENANT_ID,
+              store_id: selectedStaff.store_id,
+              staff_id: selectedStaff.staff_id,
+              preferences: preferences,
             };
 
-            // アルバイトの場合は時刻情報を追加
-            if (value.type === 'part') {
-              pref.start_time = value.start || null;
-              pref.end_time = value.end || null;
+            const url = `${API_BASE}/api/shifts/preferences/bulk`;
+
+            const response = await fetch(url, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${window._login.idToken}`,
+              },
+              body: JSON.stringify(requestBody),
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+              results.push(`シフト希望${result.inserted}件`);
+            } else {
+              throw new Error(result.error || 'シフト送信に失敗しました');
             }
-
-            preferences.push(pref);
-          });
-
-          // 一括登録APIを使用
-          const requestBody = {
-            tenant_id: TENANT_ID,
-            store_id: selectedStaff.store_id,
-            staff_id: selectedStaff.staff_id,
-            preferences: preferences,
-          };
-
-          const url = `${API_BASE}/api/shifts/preferences/bulk`;
-
-          const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${window._login.idToken}`,
-            },
-            body: JSON.stringify(requestBody),
-          });
-
-          const result = await response.json();
-
-          if (result.success) {
-            const box = document.getElementById('resultBox');
-            box.style.display = 'block';
-            box.textContent = `✅ ${result.inserted}件のシフト希望を送信しました！`;
-            box.className = 'success';
-
-            // 送信後、既存データを再読み込み
-            await loadExistingPreferences();
-            renderCal();
-          } else {
-            throw new Error(result.error || '送信に失敗しました');
           }
+
+          // コメントを保存
+          const commentResult = await saveMonthlyComment();
+          if (commentResult.success && !commentResult.skipped) {
+            results.push('コメント');
+          }
+
+          // 結果表示
+          const box = document.getElementById('resultBox');
+          box.style.display = 'block';
+          box.textContent = `✅ ${results.join('と')}を送信しました！`;
+          box.className = 'success';
+
+          // 送信後、既存データを再読み込み
+          await loadExistingPreferences();
+          renderCal();
         } catch (error) {
           const box = document.getElementById('resultBox');
           box.style.display = 'block';
@@ -1806,6 +1986,13 @@
           box.className = 'danger';
         }
       };
+
+      // ====== コメント入力イベント ======
+      document
+        .getElementById('monthlyComment')
+        .addEventListener('input', () => {
+          updateCommentUI();
+        });
 
       // 初期化
       (async function () {
@@ -1815,6 +2002,7 @@
         // renderPatterns();
         renderCal();
         refreshTips();
+        updateCommentUI(); // 初期状態のコメントUI更新
       })();
     </script>
   </body>

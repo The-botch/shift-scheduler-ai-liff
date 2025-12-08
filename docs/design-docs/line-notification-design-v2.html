@@ -1,0 +1,1617 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LINE通知機能 設計書 v2</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+          'Hiragino Sans', sans-serif;
+        background: #f8f9fa;
+        color: #333;
+        line-height: 1.7;
+        padding: 40px 20px;
+      }
+      .container {
+        max-width: 900px;
+        margin: 0 auto;
+      }
+      h1 {
+        color: #06c755;
+        font-size: 1.8rem;
+        margin-bottom: 10px;
+        padding-bottom: 10px;
+        border-bottom: 3px solid #06c755;
+      }
+      .meta {
+        color: #666;
+        font-size: 0.9rem;
+        margin-bottom: 30px;
+      }
+      h2 {
+        color: #333;
+        font-size: 1.4rem;
+        margin-top: 40px;
+        margin-bottom: 15px;
+        padding-left: 10px;
+        border-left: 4px solid #06c755;
+      }
+      h3 {
+        color: #555;
+        font-size: 1.1rem;
+        margin-top: 25px;
+        margin-bottom: 10px;
+      }
+      h4 {
+        color: #666;
+        font-size: 1rem;
+        margin-top: 20px;
+        margin-bottom: 8px;
+      }
+      p {
+        margin-bottom: 15px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 15px 0;
+        font-size: 0.9rem;
+      }
+      th,
+      td {
+        border: 1px solid #ddd;
+        padding: 10px 12px;
+        text-align: left;
+      }
+      th {
+        background: #f0f0f0;
+        font-weight: bold;
+      }
+      tr:nth-child(even) {
+        background: #fafafa;
+      }
+      .highlight {
+        background: #e8f5e9;
+      }
+      .warning {
+        background: #fff3cd;
+      }
+      code {
+        background: #f4f4f4;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-family: 'Courier New', monospace;
+        font-size: 0.9em;
+      }
+      pre {
+        background: #2d2d2d;
+        color: #f8f8f2;
+        padding: 15px;
+        border-radius: 8px;
+        overflow-x: auto;
+        margin: 15px 0;
+        font-size: 0.85rem;
+      }
+      .card {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        margin: 20px 0;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      }
+      .pros {
+        color: #28a745;
+      }
+      .cons {
+        color: #dc3545;
+      }
+      .badge {
+        display: inline-block;
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        font-weight: bold;
+      }
+      .badge-green {
+        background: #d4edda;
+        color: #155724;
+      }
+      .badge-yellow {
+        background: #fff3cd;
+        color: #856404;
+      }
+      .badge-blue {
+        background: #cce5ff;
+        color: #004085;
+      }
+      .badge-red {
+        background: #f8d7da;
+        color: #721c24;
+      }
+      .badge-new {
+        background: #ff6b6b;
+        color: white;
+      }
+      .badge-modify {
+        background: #ffa726;
+        color: white;
+      }
+      .badge-none {
+        background: #e0e0e0;
+        color: #666;
+      }
+      .recommendation {
+        background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+        border: 2px solid #4caf50;
+        border-radius: 8px;
+        padding: 20px;
+        margin: 20px 0;
+      }
+      .recommendation h3 {
+        color: #2e7d32;
+        margin-top: 0;
+      }
+      .glossary {
+        background: #e3f2fd;
+        border: 1px solid #90caf9;
+        border-radius: 8px;
+        padding: 20px;
+        margin: 20px 0;
+      }
+      .glossary h3 {
+        color: #1565c0;
+        margin-top: 0;
+      }
+      ul {
+        margin: 10px 0 15px 20px;
+      }
+      li {
+        margin-bottom: 5px;
+      }
+      .flow-diagram {
+        background: #fff;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 20px;
+        text-align: center;
+        margin: 15px 0;
+      }
+      .flow-step {
+        display: inline-block;
+        background: #e3f2fd;
+        border: 1px solid #90caf9;
+        border-radius: 4px;
+        padding: 8px 15px;
+        margin: 5px;
+      }
+      .flow-arrow {
+        display: inline-block;
+        color: #666;
+        margin: 0 5px;
+      }
+      .impact-section {
+        background: #fff8e1;
+        border: 2px solid #ffb300;
+        border-radius: 8px;
+        padding: 20px;
+        margin: 20px 0;
+      }
+      .impact-section h3 {
+        color: #ff8f00;
+        margin-top: 0;
+      }
+      .new-file {
+        background: #ffebee;
+      }
+      .file-tree {
+        background: #263238;
+        color: #aed581;
+        padding: 15px;
+        border-radius: 8px;
+        font-family: 'Courier New', monospace;
+        font-size: 0.85rem;
+        margin: 15px 0;
+      }
+      .file-tree .new {
+        color: #ff6b6b;
+      }
+      .file-tree .modify {
+        color: #ffa726;
+      }
+      .file-tree .existing {
+        color: #aed581;
+      }
+      .file-tree .comment {
+        color: #78909c;
+      }
+      .version-badge {
+        display: inline-block;
+        background: #06c755;
+        color: white;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        margin-left: 10px;
+      }
+      .changed {
+        background: #fff9c4;
+        border-left: 4px solid #ffc107;
+        padding-left: 10px;
+      }
+      .api-spec {
+        background: #f5f5f5;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 15px;
+        margin: 15px 0;
+      }
+      .api-spec h4 {
+        margin-top: 0;
+        color: #1565c0;
+      }
+      .http-method {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-weight: bold;
+        font-size: 0.85rem;
+      }
+      .http-post {
+        background: #49cc90;
+        color: white;
+      }
+      .http-get {
+        background: #61affe;
+        color: white;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>LINE通知機能 設計書 <span class="version-badge">v2.3</span></h1>
+      <div class="meta">
+        作成日: 2025-11-30 | 更新日: 2025-12-08 | 関連Issue: #130, #104 |
+        ステータス: 実装完了・STGテスト待ち
+      </div>
+
+      <!-- 変更履歴 -->
+      <div class="card changed">
+        <h3>v2.3 変更点（最新）</h3>
+        <ul>
+          <li>
+            <strong>shift-scheduler-ai統合</strong>: 承認処理からLIFF Backend
+            APIを呼び出す実装完了
+          </li>
+          <li>
+            <strong>第2案承認</strong>:
+            <code>PUT /plans/:plan_id/status</code> でステータスAPPROVED時に通知
+          </li>
+          <li><strong>環境変数</strong>: STG/PRDのLIFF_BACKEND_URLを明記</li>
+          <li>
+            <strong>テスト用API</strong>: 手動リマインド送信エンドポイントを追加
+          </li>
+        </ul>
+        <h3>v2.2 変更点</h3>
+        <ul>
+          <li>
+            <strong>締切日</strong>:
+            DBから動的取得に変更（<code>core.shift_deadline_settings</code>テーブル使用）
+          </li>
+          <li>
+            <strong>基準</strong>:
+            アルバイト（PART_TIME）の締切設定を全フェーズで使用
+          </li>
+          <li>
+            <strong>フォールバック</strong>: DB取得失敗時はデフォルト値（10日
+            23:59）を使用
+          </li>
+        </ul>
+        <h3>v2.1 変更点</h3>
+        <ul>
+          <li>
+            <strong>アーキテクチャ</strong>:
+            API呼び出し方式を採用（ベストプラクティス）
+          </li>
+          <li><strong>フェーズ4</strong>: 送信先を個人→グループに変更</li>
+          <li><strong>フェーズ5</strong>: 第2案承認後のグループ通知を追加</li>
+          <li>
+            <strong>フェーズ2, 3</strong>:
+            対象は<strong>アルバイトのみ</strong>と明記
+          </li>
+          <li>
+            <strong>shift-scheduler-ai</strong>:
+            軽微な修正が必要（API呼び出し追加）
+          </li>
+        </ul>
+      </div>
+
+      <!-- 用語解説 -->
+      <div class="glossary">
+        <h3>用語解説</h3>
+        <table>
+          <tr>
+            <th width="25%">用語</th>
+            <th>説明</th>
+          </tr>
+          <tr>
+            <td><strong>イベント駆動</strong></td>
+            <td>
+              アクション発生時に即座に処理を実行する方式。<br />
+              例: 承認ボタンクリック → 即座にLINE通知送信
+            </td>
+          </tr>
+          <tr>
+            <td><strong>Webhook</strong></td>
+            <td>
+              LINEからサーバーへの通知。Botがグループに参加した時などにLINEが自動でAPIを呼び出す。
+            </td>
+          </tr>
+          <tr>
+            <td><strong>cron</strong></td>
+            <td>
+              定期実行の仕組み。「毎日9時に実行」などのスケジュールを設定できる。
+            </td>
+          </tr>
+          <tr>
+            <td><strong>push message</strong></td>
+            <td>
+              LINE Messaging APIで、こちらから能動的にメッセージを送信する機能。
+            </td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- 概要 -->
+      <h2>1. 概要</h2>
+      <p>
+        シフト希望入力に関する各種通知をLINE Messaging
+        APIを使用してグループに送信する機能を実装する。
+      </p>
+
+      <div class="card">
+        <h3>対象Issue</h3>
+        <table>
+          <tr>
+            <th>Issue</th>
+            <th>機能</th>
+            <th>トリガー</th>
+          </tr>
+          <tr>
+            <td>#130</td>
+            <td>リマインド・締切後通知（フェーズ1〜4）</td>
+            <td>cron（毎日定時実行）</td>
+          </tr>
+          <tr>
+            <td>#104</td>
+            <td>第1案承認通知・第2案承認通知（フェーズ5）</td>
+            <td>API呼び出し（イベント駆動）</td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- アーキテクチャ選定 -->
+      <h2>2. アーキテクチャ選定</h2>
+
+      <div class="card">
+        <h3>API呼び出し方式 vs DBポーリング方式</h3>
+        <table>
+          <tr>
+            <th>比較項目</th>
+            <th>API呼び出し方式 <span class="badge badge-green">採用</span></th>
+            <th>DBポーリング方式</th>
+          </tr>
+          <tr>
+            <td>通知タイミング</td>
+            <td class="pros">リアルタイム（即時）</td>
+            <td>遅延あり（cronの間隔次第）</td>
+          </tr>
+          <tr>
+            <td>スケーラビリティ</td>
+            <td class="pros">高い（イベント駆動）</td>
+            <td>低い（定期的なDB負荷）</td>
+          </tr>
+          <tr>
+            <td>業界標準</td>
+            <td class="pros">推奨・一般的</td>
+            <td>レガシーな手法</td>
+          </tr>
+          <tr>
+            <td>shift-scheduler-ai変更</td>
+            <td>必要（軽微: 約10行追加）</td>
+            <td class="pros">不要</td>
+          </tr>
+          <tr>
+            <td>実装の明確さ</td>
+            <td class="pros">処理フローが明確</td>
+            <td>状態管理が複雑</td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="recommendation">
+        <h3>採用: API呼び出し方式（イベント駆動）</h3>
+        <p><strong>理由:</strong></p>
+        <ul>
+          <li>業界標準のベストプラクティス</li>
+          <li>リアルタイム通知でユーザー体験向上</li>
+          <li>将来のテナント増加にも対応可能</li>
+          <li>shift-scheduler-aiへの変更は軽微（約10行の追加）</li>
+        </ul>
+      </div>
+
+      <!-- 影響範囲 -->
+      <h2>3. 影響範囲</h2>
+
+      <div class="impact-section">
+        <h3>各システムへの影響</h3>
+        <table>
+          <tr>
+            <th>システム</th>
+            <th>種類</th>
+            <th>影響</th>
+            <th>作業内容</th>
+          </tr>
+          <tr class="new-file">
+            <td><strong>shift-scheduler-ai-liff</strong><br />backend</td>
+            <td><span class="badge badge-new">新規追加</span></td>
+            <td>大</td>
+            <td>通知API、サービス、cronジョブの実装</td>
+          </tr>
+          <tr>
+            <td><strong>shift-scheduler-ai-liff</strong><br />frontend</td>
+            <td><span class="badge badge-none">影響なし</span></td>
+            <td>なし</td>
+            <td>変更不要</td>
+          </tr>
+          <tr class="warning">
+            <td><strong>shift-scheduler-ai</strong><br />backend</td>
+            <td><span class="badge badge-modify">軽微な修正</span></td>
+            <td>小</td>
+            <td>承認処理にAPI呼び出しを追加（約10行）</td>
+          </tr>
+          <tr>
+            <td><strong>shift-scheduler-ai</strong><br />frontend</td>
+            <td><span class="badge badge-none">影響なし</span></td>
+            <td>なし</td>
+            <td>変更不要</td>
+          </tr>
+          <tr>
+            <td><strong>データベース</strong></td>
+            <td><span class="badge badge-none">既存利用</span></td>
+            <td>なし</td>
+            <td>
+              締切設定を<code>core.shift_deadline_settings</code>から参照（変更不要）
+            </td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- 機能要件 -->
+      <h2>4. 機能要件</h2>
+
+      <h3>4.1 通知フェーズ一覧</h3>
+      <table>
+        <tr>
+          <th>フェーズ</th>
+          <th>タイミング</th>
+          <th>送信先</th>
+          <th>対象者</th>
+          <th>内容</th>
+          <th>トリガー</th>
+        </tr>
+        <tr>
+          <td>1</td>
+          <td>締切7日前</td>
+          <td><span class="badge badge-green">グループ</span></td>
+          <td>全員向け</td>
+          <td>「まだの方は入力お願いします」（匿名）</td>
+          <td>cron</td>
+        </tr>
+        <tr class="changed">
+          <td>2</td>
+          <td>締切3日前</td>
+          <td><span class="badge badge-green">グループ</span></td>
+          <td><strong>アルバイトのみ</strong></td>
+          <td>「アルバイト50名中35名提出」（統計情報）</td>
+          <td>cron</td>
+        </tr>
+        <tr class="changed">
+          <td>3</td>
+          <td>締切前日</td>
+          <td><span class="badge badge-green">グループ</span></td>
+          <td><strong>アルバイトのみ</strong></td>
+          <td>未提出のアルバイトを名前付きで通知</td>
+          <td>cron</td>
+        </tr>
+        <tr>
+          <td>4</td>
+          <td>締切後</td>
+          <td><span class="badge badge-green">グループ</span></td>
+          <td>全員向け</td>
+          <td>「未提出の方はオーナー指示に従ってください」</td>
+          <td>cron</td>
+        </tr>
+        <tr>
+          <td>5</td>
+          <td>第2案承認後</td>
+          <td><span class="badge badge-green">グループ</span></td>
+          <td>全員向け</td>
+          <td>「シフトが確定しました。確認をお願いします」</td>
+          <td>API</td>
+        </tr>
+      </table>
+
+      <p>
+        <strong>補足:</strong> フェーズ2,
+        3でアルバイトのみを対象とする理由は、社員はNG入力のみで希望シフト提出が不要なため。
+      </p>
+
+      <h3>4.2 第1案承認通知（Issue #104）</h3>
+      <table>
+        <tr>
+          <th>タイミング</th>
+          <th>送信先</th>
+          <th>通知内容</th>
+          <th>トリガー</th>
+        </tr>
+        <tr>
+          <td>第1案承認時</td>
+          <td><span class="badge badge-green">グループ</span></td>
+          <td>
+            シフト希望入力開始のお知らせ<br />（社員: NG入力依頼 / アルバイト:
+            希望シフト提出依頼）
+          </td>
+          <td>API</td>
+        </tr>
+      </table>
+
+      <h3>4.3 第2案承認通知（フェーズ5）</h3>
+      <table>
+        <tr>
+          <th>タイミング</th>
+          <th>送信先</th>
+          <th>通知内容</th>
+          <th>トリガー</th>
+        </tr>
+        <tr>
+          <td>第2案承認時</td>
+          <td><span class="badge badge-green">グループ</span></td>
+          <td>「シフトが確定しました。LIFFアプリで確認してください」</td>
+          <td>API</td>
+        </tr>
+      </table>
+
+      <!-- API設計 -->
+      <h2>5. API設計</h2>
+
+      <h3>5.1 LIFF Backend が提供するAPI（新規作成）</h3>
+
+      <div class="api-spec">
+        <h4>
+          <span class="http-method http-post">POST</span>
+          /api/notification/first-plan-approved
+        </h4>
+        <p>第1案承認時にshift-scheduler-aiから呼び出される</p>
+        <table>
+          <tr>
+            <th width="20%">項目</th>
+            <th>内容</th>
+          </tr>
+          <tr>
+            <td>呼び出し元</td>
+            <td>shift-scheduler-ai（routes/shifts.js の approve-first）</td>
+          </tr>
+          <tr>
+            <td>Request Body</td>
+            <td>
+              <pre>
+{
+  "tenant_id": 3,
+  "store_id": 1,
+  "plan_id": 123,
+  "year": 2025,
+  "month": 1
+}</pre
+              >
+            </td>
+          </tr>
+          <tr>
+            <td>Response</td>
+            <td>
+              <pre>
+{
+  "success": true,
+  "message": "Notification sent to group"
+}</pre
+              >
+            </td>
+          </tr>
+          <tr>
+            <td>処理内容</td>
+            <td>該当テナントのLINEグループに第1案承認通知を送信</td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="api-spec">
+        <h4>
+          <span class="http-method http-post">POST</span>
+          /api/notification/second-plan-approved
+        </h4>
+        <p>第2案承認時にshift-scheduler-aiから呼び出される</p>
+        <table>
+          <tr>
+            <th width="20%">項目</th>
+            <th>内容</th>
+          </tr>
+          <tr>
+            <td>呼び出し元</td>
+            <td>shift-scheduler-ai（routes/shifts.js の approve-second）</td>
+          </tr>
+          <tr>
+            <td>Request Body</td>
+            <td>
+              <pre>
+{
+  "tenant_id": 3,
+  "store_id": 1,
+  "plan_id": 456,
+  "year": 2025,
+  "month": 1
+}</pre
+              >
+            </td>
+          </tr>
+          <tr>
+            <td>Response</td>
+            <td>
+              <pre>
+{
+  "success": true,
+  "message": "Notification sent to group"
+}</pre
+              >
+            </td>
+          </tr>
+          <tr>
+            <td>処理内容</td>
+            <td>該当テナントのLINEグループにシフト確定通知を送信</td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="api-spec">
+        <h4>
+          <span class="http-method http-post">POST</span> /api/webhook/line
+        </h4>
+        <p>LINE Webhook受信（グループID確認用）</p>
+        <table>
+          <tr>
+            <th width="20%">項目</th>
+            <th>内容</th>
+          </tr>
+          <tr>
+            <td>呼び出し元</td>
+            <td>LINE Platform（Botがグループ参加時）</td>
+          </tr>
+          <tr>
+            <td>処理内容</td>
+            <td>グループIDをログ出力（設定ファイルへの手動追加用）</td>
+          </tr>
+        </table>
+      </div>
+
+      <h3>5.2 shift-scheduler-ai の修正箇所（実装済み）</h3>
+
+      <div class="api-spec">
+        <h4>修正ファイル: routes/shifts.js</h4>
+        <p>承認処理後にLIFF Backend APIを呼び出す</p>
+
+        <h4>approve-first エンドポイント（1126〜1141行目）:</h4>
+        <pre>
+// LINE通知を送信（第1案承認）
+if (process.env.LIFF_BACKEND_URL) {
+  try {
+    await axios.post(`${process.env.LIFF_BACKEND_URL}/api/notification/first-plan-approved`, {
+      tenant_id: tenant_id,
+      store_id: plan.store_id,
+      plan_id: plan_id,
+      year: plan.plan_year,
+      month: plan.plan_month
+    });
+    console.log('LINE notification sent for first plan approval');
+  } catch (notifyError) {
+    // 通知失敗は承認処理に影響させない（ログのみ）
+    console.error('Failed to send LINE notification:', notifyError.message);
+  }
+}</pre
+        >
+
+        <h4>
+          ステータス更新エンドポイント PUT
+          /plans/:plan_id/status（2742〜2757行目）:
+        </h4>
+        <p>
+          <strong>注意:</strong>
+          第2案承認はこのエンドポイントで処理される（plan_type='SECOND'かつstatus='APPROVED'時）
+        </p>
+        <pre>
+// 第2案がAPPROVEDになった場合、LINE通知を送信（シフト確定）
+if (status === 'APPROVED' && plan.plan_type === 'SECOND' && process.env.LIFF_BACKEND_URL) {
+  try {
+    await axios.post(`${process.env.LIFF_BACKEND_URL}/api/notification/second-plan-approved`, {
+      tenant_id: plan.tenant_id,
+      store_id: plan.store_id,
+      plan_id: parseInt(plan_id),
+      year: plan.plan_year,
+      month: plan.plan_month
+    });
+    console.log('LINE notification sent for second plan approval (shift finalized)');
+  } catch (notifyError) {
+    // 通知失敗は承認処理に影響させない（ログのみ）
+    console.error('Failed to send LINE notification:', notifyError.message);
+  }
+}</pre
+        >
+      </div>
+
+      <!-- 通知フロー -->
+      <h2>6. 通知フロー図</h2>
+
+      <h3>6.1 第1案承認通知フロー</h3>
+      <div class="flow-diagram">
+        <div class="flow-step">オーナーが<br />第1案承認</div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-step">shifts.js<br />approve-first</div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-step">
+          LIFF API呼び出し<br /><small
+            >/api/notification/first-plan-approved</small
+          >
+        </div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-step">LINE<br />グループ送信</div>
+      </div>
+
+      <h3>6.2 第2案承認通知フロー（フェーズ5）</h3>
+      <div class="flow-diagram">
+        <div class="flow-step">オーナーが<br />第2案承認</div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-step">
+          shifts.js<br /><small>PUT /plans/:id/status</small>
+        </div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-step">plan_type=SECOND<br />status=APPROVED判定</div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-step">
+          LIFF API呼び出し<br /><small
+            >/api/notification/second-plan-approved</small
+          >
+        </div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-step">LINE<br />グループ送信</div>
+      </div>
+
+      <h3>6.3 リマインド通知フロー（フェーズ1〜4）</h3>
+      <div class="flow-diagram">
+        <div class="flow-step">cron実行<br /><small>（毎日9:00）</small></div>
+        <span class="flow-arrow">→</span>
+        <div
+          class="flow-step"
+          style="background: #fff3cd; border-color: #ffc107"
+        >
+          締切設定取得<br /><small>（DBから動的取得）</small>
+        </div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-step">
+          フェーズ判定<br /><small>（残り日数）</small>
+        </div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-step">
+          提出状況取得<br /><small>（アルバイトのみ）</small>
+        </div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-step">LINE<br />グループ送信</div>
+      </div>
+      <p style="font-size: 0.9rem; color: #666; margin-top: 10px">
+        ※ 締切設定は
+        <code>core.shift_deadline_settings</code>
+        テーブルからPART_TIMEの設定を取得
+      </p>
+
+      <!-- 新規作成ファイル一覧 -->
+      <h2>7. 新規作成・修正ファイル一覧</h2>
+
+      <h3>7.1 shift-scheduler-ai-liff/backend</h3>
+      <div class="file-tree">
+        <span class="existing">shift-scheduler-ai-liff/backend/</span>
+        <span class="existing">├── src/</span>
+        <span class="existing">│ ├── config/</span>
+        <span class="existing">│ │ └── database.js # 既存</span>
+        <span class="new"
+          >│ │ └── line-notification.json #
+          【新規】グループID・リマインド設定</span
+        >
+        <span class="new">│ ├── routes/</span>
+        <span class="new">│ │ ├── webhook.js # 【新規】LINE Webhook受信</span>
+        <span class="new">│ │ └── notification.js # 【新規】通知API</span>
+        <span class="existing">│ ├── services/</span>
+        <span class="modify"
+          >│ │ ├── reminderService.js #
+          【修正】5フェーズ対応、グループ送信</span
+        >
+        <span class="new"
+          >│ │ ├── lineService.js # 【新規】LINE送信（個人/グループ）</span
+        >
+        <span class="new"
+          >│ │ └── submissionService.js #
+          【新規】提出状況集計（アルバイトのみ）</span
+        >
+        <span class="existing">│ ├── jobs/</span>
+        <span class="existing"
+          >│ │ └── shiftReminder.js # 既存（テスト用）</span
+        >
+        <span class="modify">│ └── index.js # 【修正】ルート追加</span>
+        <span class="modify">├── .env # 【修正】LINE_CHANNEL_SECRET追加</span>
+        <span class="existing"
+          >└── package.json # 既存（依存パッケージ追加済み）</span
+        >
+      </div>
+
+      <table>
+        <tr>
+          <th>ファイル</th>
+          <th>状態</th>
+          <th>説明</th>
+        </tr>
+        <tr class="new-file">
+          <td><code>config/line-notification.json</code></td>
+          <td><span class="badge badge-new">新規</span></td>
+          <td>グループID、リマインド日数、メッセージテンプレート</td>
+        </tr>
+        <tr class="new-file">
+          <td><code>routes/webhook.js</code></td>
+          <td><span class="badge badge-new">新規</span></td>
+          <td>LINEからのWebhook受信（グループID確認用）</td>
+        </tr>
+        <tr class="new-file">
+          <td><code>routes/notification.js</code></td>
+          <td><span class="badge badge-new">新規</span></td>
+          <td>承認通知API（first-plan-approved, second-plan-approved）</td>
+        </tr>
+        <tr class="new-file">
+          <td><code>services/lineService.js</code></td>
+          <td><span class="badge badge-new">新規</span></td>
+          <td>LINE送信処理（個人・グループ対応）</td>
+        </tr>
+        <tr class="new-file">
+          <td><code>services/submissionService.js</code></td>
+          <td><span class="badge badge-new">新規</span></td>
+          <td>アルバイトのシフト提出状況を集計</td>
+        </tr>
+        <tr>
+          <td><code>services/reminderService.js</code></td>
+          <td><span class="badge badge-modify">修正</span></td>
+          <td>5フェーズ対応、グループ送信に変更</td>
+        </tr>
+        <tr>
+          <td><code>index.js</code></td>
+          <td><span class="badge badge-modify">修正</span></td>
+          <td>Webhookルート、通知APIルートの追加</td>
+        </tr>
+        <tr>
+          <td><code>.env</code></td>
+          <td><span class="badge badge-modify">修正</span></td>
+          <td>LINE_CHANNEL_SECRET 追加</td>
+        </tr>
+      </table>
+
+      <h3>7.2 shift-scheduler-ai/backend（軽微な修正）</h3>
+      <div class="file-tree">
+        <span class="existing">shift-scheduler-ai/backend/</span>
+        <span class="existing">├── src/</span>
+        <span class="existing">│ └── routes/</span>
+        <span class="modify"
+          >│ └── shifts.js # 【修正】承認時にLIFF API呼び出し追加</span
+        >
+        <span class="modify">└── .env # 【修正】LIFF_BACKEND_URL追加</span>
+      </div>
+
+      <table>
+        <tr>
+          <th>ファイル</th>
+          <th>状態</th>
+          <th>変更内容</th>
+        </tr>
+        <tr>
+          <td><code>routes/shifts.js</code></td>
+          <td><span class="badge badge-modify">修正</span></td>
+          <td>approve-first, approve-second にAPI呼び出し追加（各約10行）</td>
+        </tr>
+        <tr>
+          <td><code>.env</code></td>
+          <td><span class="badge badge-modify">修正</span></td>
+          <td><code>LIFF_BACKEND_URL</code> 追加</td>
+        </tr>
+      </table>
+
+      <!-- 環境変数 -->
+      <h2>8. 環境変数</h2>
+
+      <h3>8.1 shift-scheduler-ai-liff/backend</h3>
+      <table>
+        <tr>
+          <th>変数名</th>
+          <th>説明</th>
+          <th>状態</th>
+        </tr>
+        <tr>
+          <td><code>LINE_CHANNEL_ACCESS_TOKEN</code></td>
+          <td>LINE Messaging APIトークン</td>
+          <td>既存</td>
+        </tr>
+        <tr>
+          <td><code>LINE_CHANNEL_SECRET</code></td>
+          <td>Webhook署名検証用</td>
+          <td><span class="badge badge-new">追加</span></td>
+        </tr>
+        <tr>
+          <td><code>DATABASE_URL</code></td>
+          <td>PostgreSQL接続URL</td>
+          <td>既存</td>
+        </tr>
+        <tr>
+          <td><code>TENANT_ID</code></td>
+          <td>対象テナントID</td>
+          <td>既存</td>
+        </tr>
+        <tr>
+          <td><code>LIFF_ID</code></td>
+          <td>LIFF App ID（メッセージ内URL用）</td>
+          <td>既存</td>
+        </tr>
+        <tr>
+          <td><code>NOTIFICATION_ENABLED</code></td>
+          <td>通知有効/無効フラグ（テスト時にfalse）</td>
+          <td><span class="badge badge-new">追加</span></td>
+        </tr>
+      </table>
+
+      <h3>8.2 shift-scheduler-ai/backend</h3>
+      <table>
+        <tr>
+          <th>変数名</th>
+          <th>説明</th>
+          <th>状態</th>
+        </tr>
+        <tr>
+          <td><code>LIFF_BACKEND_URL</code></td>
+          <td>LIFF BackendのURL（LINE通知送信用）</td>
+          <td><span class="badge badge-new">追加</span></td>
+        </tr>
+      </table>
+
+      <h4>LIFF_BACKEND_URL 環境別設定値</h4>
+      <table>
+        <tr>
+          <th>環境</th>
+          <th>URL</th>
+        </tr>
+        <tr>
+          <td>LOCAL</td>
+          <td><code>http://localhost:3001</code></td>
+        </tr>
+        <tr>
+          <td>STG</td>
+          <td>
+            <code
+              >https://shift-scheduler-ai-liff-backend-staging-staging.up.railway.app</code
+            >
+          </td>
+        </tr>
+        <tr>
+          <td>PRD</td>
+          <td>
+            <code
+              >https://shift-scheduler-ai-liff-production.up.railway.app</code
+            >
+          </td>
+        </tr>
+      </table>
+      <p>
+        <strong>設定場所:</strong>
+        Railway環境変数（STG/PRD）、.envファイル（LOCAL）
+      </p>
+
+      <!-- 締切設定（DB） -->
+      <h2>9. 締切設定（データベース）</h2>
+
+      <div class="card changed">
+        <h3>締切日の取得元</h3>
+        <p>
+          締切日は
+          <code>core.shift_deadline_settings</code>
+          テーブルから<strong>アルバイト（PART_TIME）</strong>の設定を動的に取得します。
+        </p>
+
+        <h4>使用するDBテーブル</h4>
+        <pre>
+SELECT deadline_day, deadline_time, is_enabled
+FROM core.shift_deadline_settings
+WHERE tenant_id = $1 AND employment_type = 'PART_TIME'</pre
+        >
+
+        <table>
+          <tr>
+            <th>カラム</th>
+            <th>型</th>
+            <th>説明</th>
+            <th>例</th>
+          </tr>
+          <tr>
+            <td>deadline_day</td>
+            <td>INTEGER</td>
+            <td>締切日（1-31）</td>
+            <td>10</td>
+          </tr>
+          <tr>
+            <td>deadline_time</td>
+            <td>VARCHAR</td>
+            <td>締切時刻（HH:MM形式）</td>
+            <td>23:59</td>
+          </tr>
+          <tr>
+            <td>is_enabled</td>
+            <td>BOOLEAN</td>
+            <td>有効フラグ</td>
+            <td>true</td>
+          </tr>
+        </table>
+
+        <h4>フォールバック</h4>
+        <p>DB取得に失敗した場合、デフォルト値を使用:</p>
+        <ul>
+          <li>deadline_day: 10</li>
+          <li>deadline_time: 23:59</li>
+          <li>is_enabled: true</li>
+        </ul>
+      </div>
+
+      <!-- 設定ファイル -->
+      <h2>10. 設定ファイル構造</h2>
+
+      <p>
+        グループID、リマインドフェーズ、メッセージテンプレートなどは設定ファイルで管理します。<br />
+        <strong
+          >※ 締切日はDBから取得するため、settings.deadlineDay
+          はフォールバック専用です。</strong
+        >
+      </p>
+
+      <pre>
+// config/line-notification.json
+{
+  "groups": {
+    "tenant_3": {
+      "groupId": "Cxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "name": "Stand Banh Mi スタッフ"
+    }
+  },
+  "reminders": [
+    { "daysBefore": 7, "type": "anonymous", "phase": 1 },
+    { "daysBefore": 3, "type": "stats", "phase": 2, "targetOnly": "partTime" },
+    { "daysBefore": 1, "type": "named", "phase": 3, "targetOnly": "partTime" },
+    { "daysBefore": 0, "type": "deadline_passed", "phase": 4 },
+    { "trigger": "second_plan_approved", "type": "confirmed", "phase": 5 }
+  ],
+  "cronSchedule": "0 9 * * *",
+  "settings": {
+    "deadlineDay": 10,        // ※ フォールバック専用（通常はDBから取得）
+    "timezone": "Asia/Tokyo",
+    "enabled": true
+  }
+}</pre
+      >
+
+      <!-- 環境別グループID管理 -->
+      <h2>10.1 環境別グループID管理（設計）</h2>
+
+      <h3>課題</h3>
+      <p>
+        現状の設定では、同一テナントに対して1つのグループIDしか設定できません。<br />
+        STG環境とPRD環境で異なるLINEグループに通知を送りたい場合、
+        デプロイごとに設定ファイルを変更する必要があり、運用上の問題があります。
+      </p>
+
+      <h3>解決策: 環境サフィックス方式</h3>
+      <p>
+        <code>NODE_ENV</code>に基づいて自動的に適切なグループIDを選択します。
+      </p>
+
+      <h4>設定ファイル構造（変更後）</h4>
+      <pre>
+// config/line-notification.json
+{
+  "groups": {
+    // STG環境用（NODE_ENV=staging または development）
+    "tenant_3_stg": {
+      "groupId": "C2a7fc3749caa5d026c689f85fe08fd58",
+      "name": "通知テストグループ",
+      "description": "STG環境用テストグループ"
+    },
+    // PRD環境用（NODE_ENV=production）
+    "tenant_3_prd": {
+      "groupId": "Cxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "name": "本番スタッフグループ",
+      "description": "PRD環境用本番グループ"
+    },
+    // フォールバック用（サフィックスなし = 後方互換）
+    "tenant_3": {
+      "groupId": "C2a7fc3749caa5d026c689f85fe08fd58",
+      "name": "デフォルトグループ"
+    }
+  },
+  ...
+}</pre
+      >
+
+      <h4>コード変更（lineService.js）</h4>
+      <pre>
+// getGroupIdByTenant 関数の変更
+export function getGroupIdByTenant(tenantId) {
+  const env = process.env.NODE_ENV;
+
+  // 環境に応じたサフィックスを決定
+  let envSuffix;
+  if (env === 'production') {
+    envSuffix = '_prd';
+  } else {
+    envSuffix = '_stg';  // development, staging, その他
+  }
+
+  // 優先順位: 環境別キー → フォールバック（サフィックスなし）
+  const envKey = `tenant_${tenantId}${envSuffix}`;
+  const fallbackKey = `tenant_${tenantId}`;
+
+  let group = notificationConfig.groups[envKey];
+
+  if (!group) {
+    console.log(`⚠️ ${envKey} not found, trying fallback: ${fallbackKey}`);
+    group = notificationConfig.groups[fallbackKey];
+  }
+
+  if (!group || !group.groupId) {
+    console.warn(`⚠️ Group ID not configured for tenant ${tenantId}`);
+    return null;
+  }
+
+  console.log(`✅ Using group: ${group.name} (${envKey})`);
+  return group.groupId;
+}</pre
+      >
+
+      <h4>ルックアップ優先順位</h4>
+      <table>
+        <tr>
+          <th>NODE_ENV</th>
+          <th>検索キー（優先）</th>
+          <th>フォールバック</th>
+        </tr>
+        <tr>
+          <td>production</td>
+          <td><code>tenant_3_prd</code></td>
+          <td><code>tenant_3</code></td>
+        </tr>
+        <tr>
+          <td>staging</td>
+          <td><code>tenant_3_stg</code></td>
+          <td><code>tenant_3</code></td>
+        </tr>
+        <tr>
+          <td>development</td>
+          <td><code>tenant_3_stg</code></td>
+          <td><code>tenant_3</code></td>
+        </tr>
+      </table>
+
+      <h4>メリット</h4>
+      <ul>
+        <li>
+          <strong>同一ファイルで管理:</strong>
+          STG/PRD両方のグループIDを1つのファイルに記載
+        </li>
+        <li>
+          <strong>後方互換性:</strong>
+          サフィックスなしのキーが残るため、既存環境は動作継続
+        </li>
+        <li>
+          <strong>誤送信防止:</strong>
+          環境ごとに自動で適切なグループが選択される
+        </li>
+        <li><strong>変更最小:</strong> getGroupIdByTenant関数のみ修正</li>
+      </ul>
+
+      <h4>移行手順</h4>
+      <table>
+        <tr>
+          <th>Step</th>
+          <th>担当</th>
+          <th>作業</th>
+        </tr>
+        <tr>
+          <td>1</td>
+          <td>開発者</td>
+          <td><code>lineService.js</code> の getGroupIdByTenant 関数を修正</td>
+        </tr>
+        <tr>
+          <td>2</td>
+          <td>開発者</td>
+          <td>
+            <code>line-notification.json</code> に
+            <code>tenant_3_prd</code> を追加（PRDグループID取得後）
+          </td>
+        </tr>
+        <tr>
+          <td>3</td>
+          <td>開発者</td>
+          <td>
+            既存の <code>tenant_3</code> を
+            <code>tenant_3_stg</code> にリネーム（後方互換のため元も残す）
+          </td>
+        </tr>
+        <tr>
+          <td>4</td>
+          <td>管理者</td>
+          <td>STG/PRD両環境にデプロイ</td>
+        </tr>
+        <tr>
+          <td>5</td>
+          <td>管理者</td>
+          <td>各環境でテスト通知を実行して確認</td>
+        </tr>
+      </table>
+
+      <!-- 実装ステップ -->
+      <h2>11. 実装ステップ</h2>
+      <table>
+        <tr>
+          <th>Step</th>
+          <th>内容</th>
+          <th>対象</th>
+          <th>状態</th>
+        </tr>
+        <tr class="highlight">
+          <td>1</td>
+          <td>設定ファイル作成（line-notification.json）</td>
+          <td>LIFF backend</td>
+          <td><span class="badge badge-green">完了</span></td>
+        </tr>
+        <tr class="highlight">
+          <td>2</td>
+          <td>LINE送信サービス作成（lineService.js）</td>
+          <td>LIFF backend</td>
+          <td><span class="badge badge-green">完了</span></td>
+        </tr>
+        <tr class="highlight">
+          <td>3</td>
+          <td>Webhookエンドポイント作成（webhook.js）</td>
+          <td>LIFF backend</td>
+          <td><span class="badge badge-green">完了</span></td>
+        </tr>
+        <tr class="highlight">
+          <td>4</td>
+          <td>通知APIエンドポイント作成（notification.js）</td>
+          <td>LIFF backend</td>
+          <td><span class="badge badge-green">完了</span></td>
+        </tr>
+        <tr class="highlight">
+          <td>5</td>
+          <td>提出状況集計サービス作成（submissionService.js）</td>
+          <td>LIFF backend</td>
+          <td><span class="badge badge-green">完了</span></td>
+        </tr>
+        <tr class="highlight">
+          <td>6</td>
+          <td>リマインドサービス拡張（5フェーズ対応・DB締切取得）</td>
+          <td>LIFF backend</td>
+          <td><span class="badge badge-green">完了</span></td>
+        </tr>
+        <tr class="highlight">
+          <td>7</td>
+          <td>index.jsにルート追加</td>
+          <td>LIFF backend</td>
+          <td><span class="badge badge-green">完了</span></td>
+        </tr>
+        <tr class="highlight">
+          <td>8</td>
+          <td>shifts.jsに通知API呼び出し追加</td>
+          <td>shift-scheduler-ai</td>
+          <td><span class="badge badge-green">完了</span></td>
+        </tr>
+        <tr class="warning">
+          <td>9</td>
+          <td>Railway環境変数設定（LIFF_BACKEND_URL）</td>
+          <td>shift-scheduler-ai</td>
+          <td><span class="badge badge-yellow">STG設定待ち</span></td>
+        </tr>
+        <tr class="warning">
+          <td>10</td>
+          <td>Railway環境変数設定（NOTIFICATION_ENABLED）</td>
+          <td>shift-scheduler-ai-liff</td>
+          <td><span class="badge badge-yellow">STG設定待ち</span></td>
+        </tr>
+        <tr class="warning">
+          <td>11</td>
+          <td>STGテスト・動作確認</td>
+          <td>全体</td>
+          <td><span class="badge badge-yellow">未着手</span></td>
+        </tr>
+      </table>
+
+      <!-- メッセージテンプレート -->
+      <h2>12. メッセージテンプレート</h2>
+
+      <h3>フェーズ1: 締切7日前（匿名）</h3>
+      <pre>
+【シフト希望入力のお願い】
+
+{targetMonth}月のシフト希望入力がまだの方は
+{deadline}までに入力をお願いします。
+
+入力はこちら: {liffUrl}</pre
+      >
+
+      <h3>フェーズ2: 締切3日前（統計・アルバイトのみ）</h3>
+      <pre>
+【シフト希望提出状況】
+
+{targetMonth}月分: アルバイト {totalCount}名中 {submittedCount}名 提出済み
+未提出: {unsubmittedCount}名
+
+{deadline}までにご提出ください。
+入力はこちら: {liffUrl}</pre
+      >
+
+      <h3>フェーズ3: 締切前日（名前付き・アルバイトのみ）</h3>
+      <pre>
+【シフト希望 締切前日】
+
+{targetMonth}月分の未提出者（アルバイト）:
+{unsubmittedNames}
+
+明日 {deadline} が締切です。
+入力はこちら: {liffUrl}</pre
+      >
+
+      <h3>フェーズ4: 締切後</h3>
+      <pre>
+【シフト希望 締切通知】
+
+{targetMonth}月分のシフト希望締切を過ぎました。
+
+未提出の方はオーナーの指示に従ってください。</pre
+      >
+
+      <h3>第1案承認通知</h3>
+      <pre>
+【{targetMonth}月シフト希望入力開始】
+
+第1案が承認されました。
+シフト希望の入力が可能になりました。
+
+締切: {deadline}
+入力はこちら: {liffUrl}</pre
+      >
+
+      <h3>フェーズ5: 第2案承認後</h3>
+      <pre>
+【シフト確定のお知らせ】
+
+{targetMonth}月のシフトが確定しました。</pre
+      >
+
+      <!-- テスト用エンドポイント -->
+      <h2>13. テスト用エンドポイント</h2>
+
+      <div class="api-spec">
+        <h4>
+          <span class="http-method http-post">POST</span> /api/send-reminder
+        </h4>
+        <p>指定した年月のリマインド通知を手動送信（フェーズ1〜4のテスト用）</p>
+        <table>
+          <tr>
+            <th width="20%">項目</th>
+            <th>内容</th>
+          </tr>
+          <tr>
+            <td>Request Body</td>
+            <td>
+              <pre>
+{
+  "year": 2026,
+  "month": 1
+}</pre
+              >
+            </td>
+          </tr>
+          <tr>
+            <td>Response</td>
+            <td>
+              <pre>
+{
+  "success": true,
+  "message": "Reminder sent",
+  "notified": true,
+  "phase": 1,
+  "type": "anonymous"
+}</pre
+              >
+            </td>
+          </tr>
+          <tr>
+            <td>処理内容</td>
+            <td>
+              指定月の締切との差分からフェーズを判定し、該当フェーズの通知を送信
+            </td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="api-spec">
+        <h4>
+          <span class="http-method http-post">POST</span>
+          /api/send-auto-reminder
+        </h4>
+        <p>自動計算（来月分）でリマインド通知を送信</p>
+        <table>
+          <tr>
+            <th width="20%">項目</th>
+            <th>内容</th>
+          </tr>
+          <tr>
+            <td>Request Body</td>
+            <td>なし</td>
+          </tr>
+          <tr>
+            <td>処理内容</td>
+            <td>現在日付から来月を計算し、リマインド通知を実行</td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="api-spec">
+        <h4>
+          <span class="http-method http-post">POST</span> /api/notification/test
+        </h4>
+        <p>任意のメッセージをグループに送信（テスト用）</p>
+        <table>
+          <tr>
+            <th width="20%">項目</th>
+            <th>内容</th>
+          </tr>
+          <tr>
+            <td>Request Body</td>
+            <td>
+              <pre>
+{
+  "tenant_id": 3,
+  "message": "テストメッセージ"
+}</pre
+              >
+            </td>
+          </tr>
+          <tr>
+            <td>処理内容</td>
+            <td>指定テナントのグループに任意のメッセージを送信</td>
+          </tr>
+        </table>
+      </div>
+
+      <h3>フェーズ別テスト方法</h3>
+      <table>
+        <tr>
+          <th>フェーズ</th>
+          <th>テスト条件</th>
+          <th>方法</th>
+        </tr>
+        <tr>
+          <td>1</td>
+          <td>締切7日前</td>
+          <td>
+            DBの締切日を「今日から7日後」に設定 →
+            <code>/api/send-auto-reminder</code> 実行
+          </td>
+        </tr>
+        <tr>
+          <td>2</td>
+          <td>締切3日前</td>
+          <td>
+            DBの締切日を「今日から3日後」に設定 →
+            <code>/api/send-auto-reminder</code> 実行
+          </td>
+        </tr>
+        <tr>
+          <td>3</td>
+          <td>締切前日</td>
+          <td>
+            DBの締切日を「今日から1日後」に設定 →
+            <code>/api/send-auto-reminder</code> 実行
+          </td>
+        </tr>
+        <tr>
+          <td>4</td>
+          <td>締切後</td>
+          <td>
+            DBの締切日を「今日以前」に設定 →
+            <code>/api/send-auto-reminder</code> 実行
+          </td>
+        </tr>
+        <tr>
+          <td>5</td>
+          <td>第2案承認時</td>
+          <td>管理画面から第2案をAPPROVED → 自動送信</td>
+        </tr>
+      </table>
+
+      <!-- 通知の停止・再開 -->
+      <h2>14. 通知の停止・再開</h2>
+
+      <table>
+        <tr>
+          <th>方法</th>
+          <th>範囲</th>
+          <th>設定場所</th>
+          <th>反映タイミング</th>
+        </tr>
+        <tr>
+          <td>環境変数</td>
+          <td>全体</td>
+          <td><code>NOTIFICATION_ENABLED=false</code></td>
+          <td>サーバー再起動後</td>
+        </tr>
+        <tr>
+          <td>DB設定</td>
+          <td>テナント単位</td>
+          <td><code>core.shift_deadline_settings.is_enabled</code></td>
+          <td>即時（次回cron実行時）</td>
+        </tr>
+      </table>
+
+      <pre>
+-- テナント3の通知を停止
+UPDATE core.shift_deadline_settings
+SET is_enabled = false
+WHERE tenant_id = 3 AND employment_type = 'PART_TIME';
+
+-- 再開
+UPDATE core.shift_deadline_settings
+SET is_enabled = true
+WHERE tenant_id = 3 AND employment_type = 'PART_TIME';</pre
+      >
+
+      <!-- 今後の拡張 -->
+      <h2>15. 今後の拡張（将来検討）</h2>
+      <ul>
+        <li>テナント数増加時にグループID設定をDB管理へ移行</li>
+        <li>管理画面からの通知設定変更UI</li>
+        <li>通知ログのDB保存・履歴確認機能</li>
+        <li>ユーザーからの返信対応（チャットボット）</li>
+        <li>テナント単位の通知ON/OFF管理UI</li>
+      </ul>
+
+      <div
+        class="card"
+        style="margin-top: 40px; text-align: center; color: #666"
+      >
+        <p>End of Document</p>
+      </div>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,59 @@
+{
+  "groups": {
+    "tenant_3_stg": {
+      "groupId": "C2a7fc3749caa5d026c689f85fe08fd58",
+      "name": "通知テストグループ（STG）",
+      "description": "STG環境用テストグループ"
+    },
+    "tenant_3_prd": {
+      "groupId": "本番グループID（取得後に設定）",
+      "name": "本番スタッフグループ",
+      "description": "PRD環境用本番グループ"
+    },
+    "tenant_3": {
+      "groupId": "C2a7fc3749caa5d026c689f85fe08fd58",
+      "name": "通知テストグループ",
+      "description": "フォールバック用"
+    }
+  },
+  "reminders": [
+    {
+      "phase": 1,
+      "daysBefore": 7,
+      "type": "anonymous",
+      "targetOnly": null,
+      "message": "【シフト希望入力のお願い】\n\n{targetMonth}月のシフト希望入力がまだの方は\n{deadline}までに入力をお願いします。\n\n入力はこちら: {liffUrl}"
+    },
+    {
+      "phase": 2,
+      "daysBefore": 3,
+      "type": "stats",
+      "targetOnly": "partTime",
+      "message": "【シフト希望提出状況】\n\n{targetMonth}月分: アルバイト {totalCount}名中 {submittedCount}名 提出済み\n未提出: {unsubmittedCount}名\n\n{deadline}までにご提出ください。\n入力はこちら: {liffUrl}"
+    },
+    {
+      "phase": 3,
+      "daysBefore": 1,
+      "type": "named",
+      "targetOnly": "partTime",
+      "message": "【シフト希望 締切前日】\n\n{targetMonth}月分の未提出者（アルバイト）:\n{unsubmittedNames}\n\n明日 {deadline} が締切です。\n入力はこちら: {liffUrl}"
+    },
+    {
+      "phase": 4,
+      "daysBefore": 0,
+      "type": "deadline_passed",
+      "targetOnly": null,
+      "message": "【シフト希望 締切通知】\n\n{targetMonth}月分のシフト希望締切を過ぎました。\n\n未提出の方はオーナーの指示に従ってください。"
+    }
+  ],
+  "approvalMessages": {
+    "firstPlanApproved": "【{targetMonth}月シフト希望入力開始】\n\n第1案が承認されました。\nシフト希望の入力が可能になりました。\n\n締切: {deadline}\n入力はこちら: {liffUrl}",
+    "secondPlanApproved": "【シフト確定のお知らせ】\n\n{targetMonth}月のシフトが確定しました。"
+  },
+  "cronSchedule": "0 9 * * *",
+  "settings": {
+    "deadlineDay": 10,
+    "timezone": "Asia/Tokyo",
+    "enabled": true
+  }
+}

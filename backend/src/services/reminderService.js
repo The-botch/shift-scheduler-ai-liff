@@ -1,147 +1,201 @@
-import { messagingApi } from '@line/bot-sdk';
 import dotenv from 'dotenv';
-import pool from '../config/database.js';
+import {
+  getGroupIdByTenant,
+  sendGroupMessage,
+  formatMessage,
+  getLiffUrl,
+  getNotificationConfig,
+} from './lineService.js';
+import {
+  getPartTimeSubmissionStats,
+  getUnsubmittedNamesString,
+  getPartTimeDeadlineSettings,
+} from './submissionService.js';
 
 dotenv.config();
 
-const client = new messagingApi.MessagingApiClient({
-  channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN,
-});
-
 /**
- * シフト未提出のアルバイトスタッフを取得
+ * 締切日までの残り日数を計算
  * @param {number} year - 対象年
  * @param {number} month - 対象月
- * @returns {Promise<Array>} - 未提出スタッフのリスト
+ * @param {number} deadlineDay - 締切日（1-31）
+ * @param {string} deadlineTime - 締切時刻（"HH:MM"形式）
+ * @returns {number} 残り日数（負の値は締切超過）
  */
-export async function getUnsubmittedPartTimeStaff(year, month) {
-  const tenantId = process.env.TENANT_ID || 3;
+export function getDaysUntilDeadline(
+  year,
+  month,
+  deadlineDay,
+  deadlineTime = '23:59'
+) {
+  // N月のシフト締切はN-1月のdeadlineDay日
+  let deadlineMonth = month - 1;
+  let deadlineYear = year;
 
-  const query = `
-    SELECT
-      sla.line_user_id,
-      s.staff_id,
-      s.name,
-      s.employment_type,
-      st.store_name
-    FROM hr.staff_line_accounts sla
-    JOIN hr.staff s ON sla.staff_id = s.staff_id
-    JOIN core.stores st ON s.store_id = st.store_id
-    JOIN core.employment_types et ON s.employment_type = et.employment_code AND et.tenant_id = s.tenant_id
-    WHERE sla.tenant_id = $1
-      AND sla.is_active = true
-      AND s.is_active = true
-      AND et.payment_type = 'HOURLY'
-      AND NOT EXISTS (
-        SELECT 1 FROM ops.shift_preferences sp
-        WHERE sp.staff_id = s.staff_id
-          AND sp.year = $2
-          AND sp.month = $3
-      )
-  `;
-
-  try {
-    const result = await pool.query(query, [tenantId, year, month]);
-    return result.rows;
-  } catch (error) {
-    console.error('❌ Error fetching unsubmitted staff:', error);
-    throw error;
+  if (deadlineMonth === 0) {
+    deadlineMonth = 12;
+    deadlineYear--;
   }
+
+  // 締切時刻をパース
+  const [hour, minute] = deadlineTime.split(':').map(Number);
+
+  const deadline = new Date(
+    deadlineYear,
+    deadlineMonth - 1,
+    deadlineDay,
+    hour,
+    minute,
+    59
+  );
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const diffTime = deadline.getTime() - today.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+  return diffDays;
 }
 
 /**
- * LINEプッシュメッセージ送信
- * @param {string} userId - LINE User ID
- * @param {string} message - 送信メッセージ
+ * 締切日文字列を生成
+ * @param {number} year - 対象年
+ * @param {number} month - 対象月
+ * @param {number} deadlineDay - 締切日
+ * @returns {string} 締切日文字列（例: "12月10日"）
  */
-export async function sendLineMessage(userId, message) {
-  try {
-    await client.pushMessage({
-      to: userId,
-      messages: [
-        {
-          type: 'text',
-          text: message,
-        },
-      ],
-    });
-    console.log(`✅ Message sent to ${userId}`);
-  } catch (error) {
-    console.error(`❌ Error sending message to ${userId}:`, error);
-    throw error;
+export function getDeadlineString(year, month, deadlineDay) {
+  // N月のシフト締切はN-1月のdeadlineDay日
+  let deadlineMonth = month - 1;
+
+  if (deadlineMonth === 0) {
+    deadlineMonth = 12;
   }
+
+  return `${deadlineMonth}月${deadlineDay}日`;
 }
 
 /**
- * シフト提出リマインダーを送信
+ * 残り日数からフェーズを判定
+ * @param {number} daysUntilDeadline - 締切までの残り日数
+ * @returns {Object|null} 該当するフェーズ設定（該当なしはnull）
+ */
+export function determinePhase(daysUntilDeadline) {
+  const config = getNotificationConfig();
+  const reminders = config.reminders;
+
+  // フェーズ4: 締切後（0日以下）
+  if (daysUntilDeadline <= 0) {
+    return reminders.find(r => r.phase === 4);
+  }
+
+  // フェーズ1〜3: 残り日数に応じて判定
+  for (const reminder of reminders) {
+    if (reminder.daysBefore === daysUntilDeadline) {
+      return reminder;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * リマインド通知を送信（cron から呼び出される）
  * @param {number} year - 対象年
  * @param {number} month - 対象月
+ * @returns {Promise<Object>} 送信結果
  */
+export async function sendReminderNotification(year, month) {
+  const tenantId = parseInt(process.env.TENANT_ID, 10) || 3;
+
+  console.log(`📅 Checking reminder for ${year}/${month}, tenant ${tenantId}`);
+
+  // DBからアルバイトの締切設定を取得
+  const deadlineSettings = await getPartTimeDeadlineSettings(tenantId);
+  console.log('📋 Deadline settings from DB:', deadlineSettings);
+
+  // 残り日数を計算（DBの締切日を使用）
+  const daysUntilDeadline = getDaysUntilDeadline(
+    year,
+    month,
+    deadlineSettings.deadline_day,
+    deadlineSettings.deadline_time
+  );
+  console.log(`⏰ Days until deadline: ${daysUntilDeadline}`);
+
+  // フェーズを判定
+  const phase = determinePhase(daysUntilDeadline);
+
+  if (!phase) {
+    console.log('📭 No notification scheduled for today');
+    return { success: true, notified: false, reason: 'No phase matched' };
+  }
+
+  console.log(`📢 Phase ${phase.phase} (${phase.type}) triggered`);
+
+  // グループIDを取得
+  const groupId = getGroupIdByTenant(tenantId);
+  if (!groupId) {
+    console.warn(`⚠️ No group configured for tenant ${tenantId}`);
+    return { success: true, notified: false, reason: 'No group configured' };
+  }
+
+  // 統計情報を取得（フェーズ2, 3で使用）
+  const stats = await getPartTimeSubmissionStats(tenantId, year, month);
+  console.log('📊 Submission stats:', stats);
+
+  // 未提出者名を取得（フェーズ3で使用）
+  let unsubmittedNames = '';
+  if (phase.type === 'named') {
+    unsubmittedNames = await getUnsubmittedNamesString(tenantId, year, month);
+  }
+
+  // メッセージを作成（DBの締切日を使用）
+  const message = formatMessage(phase.message, {
+    targetMonth: month,
+    deadline: getDeadlineString(year, month, deadlineSettings.deadline_day),
+    liffUrl: getLiffUrl(),
+    totalCount: stats.totalCount,
+    submittedCount: stats.submittedCount,
+    unsubmittedCount: stats.unsubmittedCount,
+    unsubmittedNames: unsubmittedNames,
+  });
+
+  // グループに送信
+  const sent = await sendGroupMessage(groupId, message);
+
+  return {
+    success: true,
+    notified: sent,
+    phase: phase.phase,
+    type: phase.type,
+    stats: stats,
+    deadlineSettings: deadlineSettings,
+  };
+}
+
+/**
+ * 対象月を自動計算してリマインドを送信
+ * cronジョブから呼び出される場合に使用
+ */
+export async function sendAutoReminder() {
+  const now = new Date();
+
+  // 現在の日付から対象月を判定（来月分のシフト）
+  let targetYear = now.getFullYear();
+  let targetMonth = now.getMonth() + 2; // 来月分
+
+  if (targetMonth > 12) {
+    targetMonth = 1;
+    targetYear++;
+  }
+
+  console.log(`🤖 Auto reminder: targeting ${targetYear}/${targetMonth}`);
+
+  return await sendReminderNotification(targetYear, targetMonth);
+}
+
+// 旧関数との互換性を維持（既存のcronジョブ用）
 export async function sendShiftReminders(year, month) {
-  console.log(`📅 Sending shift reminders for ${year}/${month}`);
-
-  try {
-    const unsubmittedStaff = await getUnsubmittedPartTimeStaff(year, month);
-
-    if (unsubmittedStaff.length === 0) {
-      console.log(
-        '✅ All part-time staff have submitted their shift preferences'
-      );
-      return { success: true, count: 0 };
-    }
-
-    console.log(
-      `📝 Found ${unsubmittedStaff.length} staff who haven't submitted`
-    );
-
-    // 締切日を計算（N月の締切 = N-1月10日）
-    let deadlineMonth = month - 1;
-    let deadlineYear = year;
-    if (deadlineMonth === 0) {
-      deadlineMonth = 12;
-      deadlineYear--;
-    }
-
-    const results = [];
-    for (const staff of unsubmittedStaff) {
-      const message = `【シフト提出リマインド】
-
-${staff.name} さん、こんにちは！
-
-${year}年${month}月のシフト希望がまだ提出されていません。
-
-📅 提出期限: ${deadlineYear}年${deadlineMonth}月10日 23:59
-
-以下のリンクからシフト希望を入力してください：
-https://liff.line.me/${process.env.LIFF_ID || '2008227932-Rq9rJrJn'}
-
-ご協力をお願いいたします。`;
-
-      try {
-        await sendLineMessage(staff.line_user_id, message);
-        results.push({
-          staff_id: staff.staff_id,
-          name: staff.name,
-          success: true,
-        });
-      } catch (error) {
-        results.push({
-          staff_id: staff.staff_id,
-          name: staff.name,
-          success: false,
-          error: error.message,
-        });
-      }
-    }
-
-    const successCount = results.filter(r => r.success).length;
-    console.log(
-      `✅ Sent ${successCount}/${results.length} reminders successfully`
-    );
-
-    return { success: true, count: results.length, results };
-  } catch (error) {
-    console.error('❌ Error in sendShiftReminders:', error);
-    throw error;
-  }
+  return await sendReminderNotification(year, month);
 }

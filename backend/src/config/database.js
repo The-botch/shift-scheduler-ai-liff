@@ -8,10 +8,9 @@ const { Pool } = pg;
 // shift-scheduler-ai の PostgreSQL に接続
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl:
-    process.env.NODE_ENV === 'production'
-      ? { rejectUnauthorized: false }
-      : false,
+  ssl: ['production', 'staging'].includes(process.env.NODE_ENV)
+    ? { rejectUnauthorized: false }
+    : false,
 });
 
 // 接続テスト

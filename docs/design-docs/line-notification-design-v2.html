@@ -1120,6 +1120,164 @@ WHERE tenant_id = $1 AND employment_type = 'PART_TIME'</pre
 }</pre
       >
 
+      <!-- 環境別グループID管理 -->
+      <h2>10.1 環境別グループID管理（設計）</h2>
+
+      <h3>課題</h3>
+      <p>
+        現状の設定では、同一テナントに対して1つのグループIDしか設定できません。<br />
+        STG環境とPRD環境で異なるLINEグループに通知を送りたい場合、
+        デプロイごとに設定ファイルを変更する必要があり、運用上の問題があります。
+      </p>
+
+      <h3>解決策: 環境サフィックス方式</h3>
+      <p>
+        <code>NODE_ENV</code>に基づいて自動的に適切なグループIDを選択します。
+      </p>
+
+      <h4>設定ファイル構造（変更後）</h4>
+      <pre>
+// config/line-notification.json
+{
+  "groups": {
+    // STG環境用（NODE_ENV=staging または development）
+    "tenant_3_stg": {
+      "groupId": "C2a7fc3749caa5d026c689f85fe08fd58",
+      "name": "通知テストグループ",
+      "description": "STG環境用テストグループ"
+    },
+    // PRD環境用（NODE_ENV=production）
+    "tenant_3_prd": {
+      "groupId": "Cxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "name": "本番スタッフグループ",
+      "description": "PRD環境用本番グループ"
+    },
+    // フォールバック用（サフィックスなし = 後方互換）
+    "tenant_3": {
+      "groupId": "C2a7fc3749caa5d026c689f85fe08fd58",
+      "name": "デフォルトグループ"
+    }
+  },
+  ...
+}</pre
+      >
+
+      <h4>コード変更（lineService.js）</h4>
+      <pre>
+// getGroupIdByTenant 関数の変更
+export function getGroupIdByTenant(tenantId) {
+  const env = process.env.NODE_ENV;
+
+  // 環境に応じたサフィックスを決定
+  let envSuffix;
+  if (env === 'production') {
+    envSuffix = '_prd';
+  } else {
+    envSuffix = '_stg';  // development, staging, その他
+  }
+
+  // 優先順位: 環境別キー → フォールバック（サフィックスなし）
+  const envKey = `tenant_${tenantId}${envSuffix}`;
+  const fallbackKey = `tenant_${tenantId}`;
+
+  let group = notificationConfig.groups[envKey];
+
+  if (!group) {
+    console.log(`⚠️ ${envKey} not found, trying fallback: ${fallbackKey}`);
+    group = notificationConfig.groups[fallbackKey];
+  }
+
+  if (!group || !group.groupId) {
+    console.warn(`⚠️ Group ID not configured for tenant ${tenantId}`);
+    return null;
+  }
+
+  console.log(`✅ Using group: ${group.name} (${envKey})`);
+  return group.groupId;
+}</pre
+      >
+
+      <h4>ルックアップ優先順位</h4>
+      <table>
+        <tr>
+          <th>NODE_ENV</th>
+          <th>検索キー（優先）</th>
+          <th>フォールバック</th>
+        </tr>
+        <tr>
+          <td>production</td>
+          <td><code>tenant_3_prd</code></td>
+          <td><code>tenant_3</code></td>
+        </tr>
+        <tr>
+          <td>staging</td>
+          <td><code>tenant_3_stg</code></td>
+          <td><code>tenant_3</code></td>
+        </tr>
+        <tr>
+          <td>development</td>
+          <td><code>tenant_3_stg</code></td>
+          <td><code>tenant_3</code></td>
+        </tr>
+      </table>
+
+      <h4>メリット</h4>
+      <ul>
+        <li>
+          <strong>同一ファイルで管理:</strong>
+          STG/PRD両方のグループIDを1つのファイルに記載
+        </li>
+        <li>
+          <strong>後方互換性:</strong>
+          サフィックスなしのキーが残るため、既存環境は動作継続
+        </li>
+        <li>
+          <strong>誤送信防止:</strong>
+          環境ごとに自動で適切なグループが選択される
+        </li>
+        <li><strong>変更最小:</strong> getGroupIdByTenant関数のみ修正</li>
+      </ul>
+
+      <h4>移行手順</h4>
+      <table>
+        <tr>
+          <th>Step</th>
+          <th>担当</th>
+          <th>作業</th>
+        </tr>
+        <tr>
+          <td>1</td>
+          <td>開発者</td>
+          <td><code>lineService.js</code> の getGroupIdByTenant 関数を修正</td>
+        </tr>
+        <tr>
+          <td>2</td>
+          <td>開発者</td>
+          <td>
+            <code>line-notification.json</code> に
+            <code>tenant_3_prd</code> を追加（PRDグループID取得後）
+          </td>
+        </tr>
+        <tr>
+          <td>3</td>
+          <td>開発者</td>
+          <td>
+            既存の <code>tenant_3</code> を
+            <code>tenant_3_stg</code> にリネーム（後方互換のため元も残す）
+          </td>
+        </tr>
+        <tr>
+          <td>4</td>
+          <td>管理者</td>
+          <td>STG/PRD両環境にデプロイ</td>
+        </tr>
+        <tr>
+          <td>5</td>
+          <td>管理者</td>
+          <td>各環境でテスト通知を実行して確認</td>
+        </tr>
+      </table>
+
       <!-- 実装ステップ -->
       <h2>11. 実装ステップ</h2>
       <table>

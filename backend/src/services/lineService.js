@@ -13,19 +13,38 @@ const client = new messagingApi.MessagingApiClient({
 });
 
 /**
- * テナントIDからグループIDを取得
+ * テナントIDからグループIDを取得（環境別対応）
  * @param {number} tenantId - テナントID
  * @returns {string|null} グループID
  */
 export function getGroupIdByTenant(tenantId) {
-  const tenantKey = `tenant_${tenantId}`;
-  const group = notificationConfig.groups[tenantKey];
+  const env = process.env.NODE_ENV;
+
+  // 環境に応じたサフィックスを決定
+  let envSuffix;
+  if (env === 'production') {
+    envSuffix = '_prd';
+  } else {
+    envSuffix = '_stg'; // development, staging, その他
+  }
+
+  // 優先順位: 環境別キー → フォールバック（サフィックスなし）
+  const envKey = `tenant_${tenantId}${envSuffix}`;
+  const fallbackKey = `tenant_${tenantId}`;
+
+  let group = notificationConfig.groups[envKey];
+
+  if (!group) {
+    console.log(`⚠️ ${envKey} not found, trying fallback: ${fallbackKey}`);
+    group = notificationConfig.groups[fallbackKey];
+  }
 
   if (!group || !group.groupId) {
     console.warn(`⚠️ Group ID not configured for tenant ${tenantId}`);
     return null;
   }
 
+  console.log(`✅ Using group: ${group.name}`);
   return group.groupId;
 }
 

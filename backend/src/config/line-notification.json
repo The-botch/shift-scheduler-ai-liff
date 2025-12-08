@@ -1,9 +1,19 @@
 {
   "groups": {
+    "tenant_3_stg": {
+      "groupId": "C2a7fc3749caa5d026c689f85fe08fd58",
+      "name": "通知テストグループ（STG）",
+      "description": "STG環境用テストグループ"
+    },
+    "tenant_3_prd": {
+      "groupId": "本番グループID（取得後に設定）",
+      "name": "本番スタッフグループ",
+      "description": "PRD環境用本番グループ"
+    },
     "tenant_3": {
       "groupId": "C2a7fc3749caa5d026c689f85fe08fd58",
       "name": "通知テストグループ",
-      "description": "テナント3のスタッフ用LINEグループ（テスト）"
+      "description": "フォールバック用"
     }
   },
   "reminders": [

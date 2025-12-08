@@ -6,9 +6,9 @@
       "description": "STG環境用テストグループ"
     },
     "tenant_3_prd": {
-      "groupId": "本番グループID（取得後に設定）",
-      "name": "本番スタッフグループ",
-      "description": "PRD環境用本番グループ"
+      "groupId": "Ca40304397e068af4a489d1c1bd139556",
+      "name": "本番スタッフグループ（仮）",
+      "description": "PRD環境用本番グループ。本番検証完了後、正式な本番グループIDに更新すること"
     },
     "tenant_3": {
       "groupId": "C2a7fc3749caa5d026c689f85fe08fd58",

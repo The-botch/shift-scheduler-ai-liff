@@ -23,19 +23,19 @@ export async function getPartTimeSubmissionStats(tenantId, year, month) {
       AND et.payment_type = 'HOURLY'
   `;
 
-  // 提出済みアルバイトの数を取得
+  // 提出済みアルバイトの数を取得（staff_monthly_submissionsテーブルを参照）
   const submittedQuery = `
     SELECT COUNT(DISTINCT s.staff_id) as submitted_count
     FROM hr.staff s
     JOIN hr.staff_line_accounts sla ON s.staff_id = sla.staff_id AND s.tenant_id = sla.tenant_id
     JOIN core.employment_types et ON s.employment_type = et.employment_code AND et.tenant_id = s.tenant_id
-    JOIN ops.shift_preferences sp ON s.staff_id = sp.staff_id
+    JOIN ops.staff_monthly_submissions sms ON s.staff_id = sms.staff_id AND s.tenant_id = sms.tenant_id
     WHERE s.tenant_id = $1
       AND s.is_active = true
       AND sla.is_active = true
       AND et.payment_type = 'HOURLY'
-      AND sp.year = $2
-      AND sp.month = $3
+      AND sms.year = $2
+      AND sms.month = $3
   `;
 
   try {
@@ -70,6 +70,7 @@ export async function getPartTimeSubmissionStats(tenantId, year, month) {
  * @returns {Promise<Array>} 未提出スタッフの配列
  */
 export async function getUnsubmittedPartTimeStaff(tenantId, year, month) {
+  // staff_monthly_submissionsテーブルを参照して未提出者を取得
   const query = `
     SELECT
       sla.line_user_id,
@@ -86,10 +87,11 @@ export async function getUnsubmittedPartTimeStaff(tenantId, year, month) {
       AND s.is_active = true
       AND et.payment_type = 'HOURLY'
       AND NOT EXISTS (
-        SELECT 1 FROM ops.shift_preferences sp
-        WHERE sp.staff_id = s.staff_id
-          AND sp.year = $2
-          AND sp.month = $3
+        SELECT 1 FROM ops.staff_monthly_submissions sms
+        WHERE sms.staff_id = s.staff_id
+          AND sms.tenant_id = s.tenant_id
+          AND sms.year = $2
+          AND sms.month = $3
       )
     ORDER BY s.name
   `;

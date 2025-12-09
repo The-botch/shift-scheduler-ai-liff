@@ -32,6 +32,67 @@
         font-size: 1.5rem;
         margin-bottom: 10px;
       }
+      .announcement {
+        background: #e8f5e9;
+        border-left: 4px solid #06c755;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 30px;
+      }
+      .announcement h2 {
+        color: #06c755;
+        font-size: 1.2rem;
+        margin-bottom: 10px;
+      }
+      .announcement p {
+        color: #333;
+        font-size: 0.95rem;
+        margin-bottom: 8px;
+      }
+      .announcement .note {
+        background: white;
+        border-radius: 6px;
+        padding: 12px 15px;
+        margin-top: 12px;
+      }
+      .announcement .note h3 {
+        color: #06c755;
+        font-size: 1rem;
+        margin-bottom: 5px;
+      }
+      .announcement .note p {
+        color: #666;
+        font-size: 0.9rem;
+        margin-bottom: 0;
+      }
+      .url-section {
+        background: white;
+        border: 2px solid #06c755;
+        border-radius: 12px;
+        padding: 25px;
+        margin-bottom: 30px;
+        text-align: center;
+      }
+      .url-section h2 {
+        color: #06c755;
+        font-size: 1.1rem;
+        margin-bottom: 15px;
+      }
+      .url-section .url-box {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 10px;
+      }
+      .url-section .url-box a {
+        color: #007bff;
+        font-size: 1rem;
+        word-break: break-all;
+      }
+      .url-section .url-note {
+        color: #666;
+        font-size: 0.85rem;
+      }
       .video-section {
         background: #1a2234;
         border-radius: 12px;
@@ -149,6 +210,64 @@
       .notes-section li {
         margin-bottom: 5px;
       }
+      .faq-section {
+        margin-top: 40px;
+      }
+      .faq-section h2 {
+        color: #06c755;
+        font-size: 1.3rem;
+        margin-bottom: 20px;
+        text-align: center;
+      }
+      .faq-item {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 15px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      }
+      .faq-item .question {
+        color: #06c755;
+        font-weight: bold;
+        font-size: 1rem;
+        margin-bottom: 10px;
+        display: flex;
+        align-items: flex-start;
+      }
+      .faq-item .question::before {
+        content: 'Q';
+        background: #06c755;
+        color: white;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.8rem;
+        margin-right: 10px;
+        flex-shrink: 0;
+      }
+      .faq-item .answer {
+        color: #333;
+        font-size: 0.95rem;
+        padding-left: 34px;
+      }
+      .faq-item .answer::before {
+        content: 'A';
+        background: #e8f5e9;
+        color: #06c755;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.8rem;
+        font-weight: bold;
+        margin-right: 10px;
+        margin-left: -34px;
+      }
       .footer {
         text-align: center;
         margin-top: 30px;
@@ -162,6 +281,30 @@
       <!-- ヘッダー -->
       <div class="header">
         <h1>スタッフ向け：アカウント登録の手順</h1>
+      </div>
+
+      <!-- お知らせセクション -->
+      <div class="announcement">
+        <h2>シフト管理システム変更のお知らせ</h2>
+        <p>今後、シフト希望の入力はLINEアプリから行う形式に変わります。</p>
+        <p>まずは下記の手順でアカウント登録をお願いします。</p>
+        <div class="note">
+          <h3>シフト入力方法について</h3>
+          <p>具体的な入力方法は、準備が整い次第改めてアナウンスいたします。</p>
+        </div>
+      </div>
+
+      <!-- アカウント登録URLセクション -->
+      <div class="url-section">
+        <h2>アカウント登録URL</h2>
+        <div class="url-box">
+          <a href="https://shift-scheduler-ai-liff.vercel.app/" target="_blank">
+            https://shift-scheduler-ai-liff.vercel.app/
+          </a>
+        </div>
+        <p class="url-note">
+          ※ 上記リンクをタップしてアカウント登録を行ってください
+        </p>
       </div>
 
       <!-- 動画セクション -->
@@ -226,11 +369,9 @@
           <div class="step-description">
             以下の情報を入力してください：
             <ul>
-              <li>🏪 店舗（選択）</li>
-              <li>👤 お名前（入力）</li>
-              <li>💼 雇用形態（選択）</li>
-              <li>📧 メールアドレス（任意）</li>
-              <li>📱 電話番号（任意）</li>
+              <li>店舗（選択）</li>
+              <li>お名前（入力）</li>
+              <li>雇用形態（選択）</li>
             </ul>
           </div>
           <div class="screenshot-placeholder has-image">
@@ -260,9 +401,58 @@
         <h3>ご注意</h3>
         <ul>
           <li>登録は1つのLINEアカウントにつき1回のみ可能です</li>
-          <li>登録情報に誤りがある場合は、管理者にお問い合わせください</li>
-          <li>シフト希望の入力は、第1案が作成された後から可能になります</li>
         </ul>
+      </div>
+
+      <!-- よくある質問 -->
+      <div class="faq-section">
+        <h2>よくある質問</h2>
+
+        <div class="faq-item">
+          <div class="question">どの店舗を選べばいいですか？</div>
+          <div class="answer">
+            普段勤務している店舗を選択してください。複数店舗で勤務している場合は、メインで勤務している店舗を選んでください。わからない場合は店舗の社員さんに確認してください。
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="question">雇用形態は何を選べばいいですか？</div>
+          <div class="answer">
+            ご自身の雇用形態（正社員、アルバイトなど）を選択してください。不明な場合は店舗の社員さんに確認してください。
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="question">
+            登録したのに「登録されていません」と表示されます
+          </div>
+          <div class="answer">
+            LINEアプリを一度閉じて、再度リンクから開いてみてください。それでも解決しない場合は、店舗の社員さんまたは管理者にお問い合わせください。
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="question">名前を間違えて登録してしまいました</div>
+          <div class="answer">
+            店舗の社員さんまたは管理者にお伝えください。修正いたします。
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="question">画面が真っ白になって何も表示されません</div>
+          <div class="answer">
+            インターネット接続を確認の上、LINEアプリを再起動してみてください。WiFiとモバイルデータを切り替えてお試しいただくことも有効です。
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="question">
+            入力内容に迷った場合はどうすればいいですか？
+          </div>
+          <div class="answer">
+            店舗の社員さんに確認してください。正しい情報を教えてもらえます。
+          </div>
+        </div>
       </div>
 
       <!-- フッター -->

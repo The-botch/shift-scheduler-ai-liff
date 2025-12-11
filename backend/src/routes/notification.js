@@ -12,6 +12,43 @@ import { getPartTimeDeadlineSettings } from '../services/submissionService.js';
 const router = express.Router();
 
 /**
+ * 重複通知排除用キャッシュ
+ * 同一 tenant_id + year + month + type の通知を一定時間内は1回のみ送信
+ */
+const recentNotifications = new Map();
+const DUPLICATE_WINDOW_MS = 60 * 1000; // 1分間
+
+/**
+ * 重複チェック（重複の場合true）
+ * @param {string} key - 重複チェック用キー
+ * @returns {boolean} 重複している場合true
+ */
+function isDuplicateNotification(key) {
+  const lastSent = recentNotifications.get(key);
+  const now = Date.now();
+
+  if (lastSent && now - lastSent < DUPLICATE_WINDOW_MS) {
+    console.log(`🔄 Duplicate notification skipped: ${key}`);
+    return true;
+  }
+
+  recentNotifications.set(key, now);
+  return false;
+}
+
+/**
+ * 古いキャッシュエントリを定期的にクリーンアップ
+ */
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, timestamp] of recentNotifications.entries()) {
+    if (now - timestamp > DUPLICATE_WINDOW_MS * 2) {
+      recentNotifications.delete(key);
+    }
+  }
+}, DUPLICATE_WINDOW_MS * 2);
+
+/**
  * 第1案承認通知
  * POST /api/notification/first-plan-approved
  *
@@ -35,6 +72,17 @@ router.post('/first-plan-approved', async (req, res) => {
       return res.status(400).json({
         success: false,
         error: 'Missing required parameters: tenant_id, year, month',
+      });
+    }
+
+    // 重複チェック
+    const dedupeKey = `first_${tenant_id}_${year}_${month}`;
+    if (isDuplicateNotification(dedupeKey)) {
+      return res.json({
+        success: true,
+        message: 'Duplicate notification skipped',
+        notified: false,
+        skipped: true,
       });
     }
 
@@ -105,6 +153,17 @@ router.post('/second-plan-approved', async (req, res) => {
       return res.status(400).json({
         success: false,
         error: 'Missing required parameters: tenant_id, year, month',
+      });
+    }
+
+    // 重複チェック
+    const dedupeKey = `second_${tenant_id}_${year}_${month}`;
+    if (isDuplicateNotification(dedupeKey)) {
+      return res.json({
+        success: true,
+        message: 'Duplicate notification skipped',
+        notified: false,
+        skipped: true,
       });
     }
 

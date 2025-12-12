@@ -37,22 +37,23 @@ export function getDaysUntilDeadline(
     deadlineYear--;
   }
 
-  // 締切時刻をパース
-  const [hour, minute] = deadlineTime.split(':').map(Number);
-
+  // 締切日（時刻は0:00で統一して日付のみで計算）
   const deadline = new Date(
     deadlineYear,
     deadlineMonth - 1,
     deadlineDay,
-    hour,
-    minute,
-    59
+    0,
+    0,
+    0,
+    0
   );
+
+  // 今日（時刻は0:00で統一）
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
   const diffTime = deadline.getTime() - today.getTime();
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
 
   return diffDays;
 }

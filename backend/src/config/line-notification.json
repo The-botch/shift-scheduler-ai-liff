@@ -50,7 +50,7 @@
     "firstPlanApproved": "【{targetMonth}月シフト希望入力開始】\n\n第1案が承認されました。\nシフト希望の入力が可能になりました。\n\n締切: {deadline}\n入力はこちら: {liffUrl}",
     "secondPlanApproved": "【シフト確定のお知らせ】\n\n{targetMonth}月のシフトが確定しました。"
   },
-  "cronSchedule": "0 9 * * *",
+  "cronSchedule": "0 0 * * *",
   "settings": {
     "deadlineDay": 10,
     "timezone": "Asia/Tokyo",

@@ -489,6 +489,12 @@
       // MVP: パターン入力を廃止 (Issue #103) - 時刻入力のみに固定
       let mode = 'time'; // "pattern" or "time"
       let cur = new Date();
+      const currentDay = cur.getDate();
+      if (currentDay <= 20) {
+        cur.setMonth(cur.getMonth() + 1); // 来月
+      } else {
+        cur.setMonth(cur.getMonth() + 2); // 再来月
+      }
       cur.setDate(1); // 月の先頭
       let selected = new Map(); // key=YYYY-MM-DD, val={type:'part'|'emp', start,end,label}
       let currentPattern = PATTERNS[0];

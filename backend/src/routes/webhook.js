@@ -59,6 +59,10 @@ router.post('/line', async (req, res) => {
       // メッセージイベント（将来の拡張用）
       if (event.type === 'message') {
         console.log('💬 Message received from:', event.source.type);
+        // グループからのメッセージの場合、Group IDもログ出力
+        if (event.source.type === 'group') {
+          console.log('📍 Group ID:', event.source.groupId);
+        }
         // 現時点ではメッセージには応答しない
       }
     }

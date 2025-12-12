@@ -11,7 +11,7 @@ dotenv.config();
  * @returns {Promise<Object>} 提出状況の統計情報
  */
 export async function getPartTimeSubmissionStats(tenantId, year, month) {
-  // アルバイト（HOURLY）の総数を取得
+  // アルバイト（PART_TIME）の総数を取得
   const totalQuery = `
     SELECT COUNT(*) as total_count
     FROM hr.staff s
@@ -20,7 +20,7 @@ export async function getPartTimeSubmissionStats(tenantId, year, month) {
     WHERE s.tenant_id = $1
       AND s.is_active = true
       AND sla.is_active = true
-      AND et.payment_type = 'HOURLY'
+      AND et.employment_code = 'PART_TIME'
   `;
 
   // 提出済みアルバイトの数を取得（staff_monthly_submissionsテーブルを参照）
@@ -33,7 +33,7 @@ export async function getPartTimeSubmissionStats(tenantId, year, month) {
     WHERE s.tenant_id = $1
       AND s.is_active = true
       AND sla.is_active = true
-      AND et.payment_type = 'HOURLY'
+      AND et.employment_code = 'PART_TIME'
       AND sms.year = $2
       AND sms.month = $3
   `;
@@ -85,7 +85,7 @@ export async function getUnsubmittedPartTimeStaff(tenantId, year, month) {
     WHERE sla.tenant_id = $1
       AND sla.is_active = true
       AND s.is_active = true
-      AND et.payment_type = 'HOURLY'
+      AND et.employment_code = 'PART_TIME'
       AND NOT EXISTS (
         SELECT 1 FROM ops.staff_monthly_submissions sms
         WHERE sms.staff_id = s.staff_id
@@ -186,7 +186,7 @@ export async function getAllPartTimeStaffWithLineId(tenantId) {
     WHERE sla.tenant_id = $1
       AND sla.is_active = true
       AND s.is_active = true
-      AND et.payment_type = 'HOURLY'
+      AND et.employment_code = 'PART_TIME'
     ORDER BY s.name
   `;
 

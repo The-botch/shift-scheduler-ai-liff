@@ -151,7 +151,7 @@
       }
       /* 社員向け：第1案の出勤時刻表示 */
       .cell .shift-time {
-        font-size: 8px;
+        font-size: 7px;
         color: var(--green);
         font-weight: 600;
         white-space: nowrap;
@@ -1660,12 +1660,12 @@
           // 社員の場合：第1案の出勤日にマーカーと時刻を表示（選択は任意の日でOK）
           if (role === 'emp' && firstPlanWorkDays.includes(key)) {
             cell.classList.add('first-plan-day');
-            // 出勤時刻を表示
+            // 出勤時刻を表示（開始-終了形式）
             const shiftTime = firstPlanShiftTimes.get(key);
-            if (shiftTime && shiftTime.start) {
+            if (shiftTime && shiftTime.start && shiftTime.end) {
               const timeLabel = document.createElement('div');
               timeLabel.className = 'shift-time';
-              timeLabel.textContent = formatTime(shiftTime.start);
+              timeLabel.textContent = `${formatTime(shiftTime.start)}-${formatTime(shiftTime.end)}`;
               cell.appendChild(timeLabel);
             }
           }

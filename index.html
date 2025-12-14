@@ -138,17 +138,15 @@
         background: var(--red-weak);
         border-color: var(--red);
       }
-      /* 社員向け：第1案で出勤予定がある日（緑背景） */
+      /* 社員向け：第1案で出勤予定がある日（緑枠） */
       .cell.first-plan-day {
-        background: var(--green-weak);
-        border-color: var(--green);
+        border: 2px solid var(--green);
       }
       .cell.first-plan-day .shift-time {
-        background: var(--green);
-        color: #fff;
         font-size: 6px;
-        padding: 2px 4px;
-        border-radius: 999px;
+        color: var(--green);
+        font-weight: 600;
+        white-space: nowrap;
       }
       /* 選択時は赤で上書き */
       .cell.first-plan-day.em-selected {
@@ -156,8 +154,7 @@
         border-color: var(--red);
       }
       .cell.first-plan-day.em-selected .shift-time {
-        background: var(--red);
-        color: #fff;
+        color: #b91c1c;
       }
       .label {
         font-size: 6px;

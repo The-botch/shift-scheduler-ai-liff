@@ -138,34 +138,34 @@
         background: var(--red-weak);
         border-color: var(--red);
       }
-      /* 社員向け：第1案で出勤予定がある日のマーカー */
-      .cell.first-plan-day::before {
-        content: '';
-        position: absolute;
-        bottom: 2px;
-        right: 2px;
-        width: 6px;
-        height: 6px;
+      /* 社員向け：第1案で出勤予定がある日（緑背景） */
+      .cell.first-plan-day {
+        background: var(--green-weak);
+        border-color: var(--green);
+      }
+      .cell.first-plan-day .shift-time {
         background: var(--green);
-        border-radius: 50%;
-      }
-      /* 社員向け：第1案の出勤時刻表示 */
-      .cell .shift-time {
-        font-size: 6px;
-        color: var(--green);
-        font-weight: 600;
-        white-space: nowrap;
-      }
-      .cell.em-selected .shift-time {
-        color: #b91c1c;
-      }
-      .label {
+        color: #fff;
         font-size: 6px;
         padding: 2px 4px;
         border-radius: 999px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+      }
+      /* 選択時は赤で上書き */
+      .cell.first-plan-day.em-selected {
+        background: var(--red-weak);
+        border-color: var(--red);
+      }
+      .cell.first-plan-day.em-selected .shift-time {
+        background: var(--red);
+        color: #fff;
+      }
+      .label {
+        font-size: 6px;
+        padding: 2px 3px;
+        border-radius: 8px;
+        text-align: center;
+        line-height: 1.2;
+        white-space: pre-line;
         max-width: 100%;
       }
       .toolbar {
@@ -1271,7 +1271,7 @@
             roleInfo.innerHTML = `
           <strong style="color:#b91c1c">🚫 社員</strong><br>
           出勤できない日を<strong style="color:#b91c1c">赤</strong>で選択してください<br>
-          <span style="font-size:11px;color:#666">（緑●＝第1案で出勤予定の日）</span>
+          <span style="font-size:11px;color:#666">（緑＝第1案で出勤予定の日）</span>
         `;
           }
           // 社員の場合は時刻入力を非表示
@@ -1762,8 +1762,8 @@
           } else {
             start = document.getElementById('startTime').value || '09:00';
             end = document.getElementById('endTime').value || '18:00';
-            // カレンダー表示用に短縮形を作成
-            tag = `${formatTime(start)}-${formatTime(end)}`;
+            // カレンダー表示用に2行で作成
+            tag = `${formatTime(start)}\n-${formatTime(end)}`;
           }
           selected.set(key, { type: 'part', start, end, label: tag });
           cell.classList.add('pt-selected');

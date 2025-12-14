@@ -151,7 +151,7 @@
       }
       /* 社員向け：第1案の出勤時刻表示 */
       .cell .shift-time {
-        font-size: 7px;
+        font-size: 6px;
         color: var(--green);
         font-weight: 600;
         white-space: nowrap;
@@ -1869,7 +1869,7 @@
 
         if (role === 'emp') {
           tip.innerHTML =
-            '赤い日が「休み希望」です。選択した日が休み希望として登録されます。';
+            '赤い日が「出勤不可日」です。選択した日が出勤不可日として登録されます。';
           block.style.display = 'none';
         } else {
           tip.innerHTML =

@@ -4,6 +4,7 @@ import cron from 'node-cron';
 import {
   sendAutoReminder,
   sendShiftReminders,
+  sendReminderByPhase,
 } from './services/reminderService.js';
 import webhookRouter from './routes/webhook.js';
 import notificationRouter from './routes/notification.js';
@@ -28,6 +29,7 @@ app.get('/', (req, res) => {
       webhook: '/api/webhook/line',
       notification: '/api/notification/*',
       sendReminder: '/api/send-reminder',
+      sendReminderPhase: '/api/send-reminder-phase',
     },
   });
 });
@@ -85,12 +87,59 @@ app.post('/api/send-auto-reminder', async (req, res) => {
   }
 });
 
+// フェーズを指定してリマインダーを送信（手動送信用）
+app.post('/api/send-reminder-phase', async (req, res) => {
+  try {
+    const { year, month, phase } = req.body;
+
+    if (!year || !month || !phase) {
+      return res.status(400).json({
+        success: false,
+        error: 'year, month, and phase are required',
+        usage: {
+          year: 'number (e.g., 2026)',
+          month: 'number (1-12)',
+          phase: 'number (1=7日前, 2=3日前, 3=1日前, 4=締切後)',
+        },
+      });
+    }
+
+    const phaseNumber = parseInt(phase, 10);
+    if (phaseNumber < 1 || phaseNumber > 4) {
+      return res.status(400).json({
+        success: false,
+        error: 'phase must be 1, 2, 3, or 4',
+        phases: {
+          1: '7日前リマインド（匿名）',
+          2: '3日前リマインド（統計付き）',
+          3: '1日前リマインド（名前入り）',
+          4: '締切後通知',
+        },
+      });
+    }
+
+    const result = await sendReminderByPhase(year, month, phaseNumber);
+
+    res.json({
+      success: true,
+      message: `Phase ${phaseNumber} reminder sent for ${year}/${month}`,
+      ...result,
+    });
+  } catch (error) {
+    console.error('Error sending phase reminder:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
 // ===== Cronジョブ設定 =====
 
 const config = getNotificationConfig();
 const cronSchedule = config.cronSchedule || '0 9 * * *';
 
-// 毎日定時にリマインド通知をチェック
+// 毎日定時にリマインド通知をチェック（フェーズ4のみ自動送信、フェーズ1~3は手動）
 cron.schedule(cronSchedule, async () => {
   console.log('⏰ Cron job triggered at', new Date().toISOString());
 
@@ -110,6 +159,7 @@ app.listen(PORT, () => {
   console.log(
     `📅 Cron schedule: ${cronSchedule} (${config.settings.timezone})`
   );
+  console.log('📋 Cron behavior: Phase 4 only (Phase 1-3 is manual)');
   console.log(
     `📵 Notification enabled: ${process.env.NOTIFICATION_ENABLED !== 'false'}`
   );
@@ -120,7 +170,12 @@ app.listen(PORT, () => {
   console.log('  POST /api/notification/first-plan-approved');
   console.log('  POST /api/notification/second-plan-approved');
   console.log('  POST /api/notification/test      - Test notification');
-  console.log('  POST /api/send-reminder          - Manual reminder');
+  console.log(
+    '  POST /api/send-reminder          - Manual reminder (day-based)'
+  );
   console.log('  POST /api/send-auto-reminder     - Auto reminder');
+  console.log(
+    '  POST /api/send-reminder-phase    - Manual reminder (phase 1-4)'
+  );
   console.log('===========================================');
 });

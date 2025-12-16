@@ -101,12 +101,17 @@ router.post('/first-plan-approved', async (req, res) => {
     const deadlineSettings = await getPartTimeDeadlineSettings(tenant_id);
     console.log('📋 Deadline settings from DB:', deadlineSettings);
 
-    // メッセージ作成（DBの締切日を使用）
+    // メッセージ作成（DBの締切日・締切時刻を使用）
     const config = getNotificationConfig();
     const template = config.approvalMessages.firstPlanApproved;
     const message = formatMessage(template, {
       targetMonth: month,
-      deadline: getDeadlineString(year, month, deadlineSettings.deadline_day),
+      deadline: getDeadlineString(
+        year,
+        month,
+        deadlineSettings.deadline_day,
+        deadlineSettings.deadline_time
+      ),
       liffUrl: getLiffUrl(),
     });
 

@@ -1,0 +1,913 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>スタッフ向け：シフトガイド</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+          'Hiragino Sans', sans-serif;
+        background: #f5f5f5;
+        color: #333;
+        line-height: 1.8;
+      }
+      .container {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      .header {
+        text-align: center;
+        margin-bottom: 30px;
+      }
+      .header h1 {
+        color: #06c755;
+        font-size: 1.5rem;
+        margin-bottom: 10px;
+      }
+      /* タブスタイル */
+      .tab-container {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 20px;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+      .tab-button {
+        padding: 12px 20px;
+        border: 2px solid #06c755;
+        border-radius: 30px;
+        background: white;
+        color: #06c755;
+        font-weight: bold;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: all 0.3s;
+      }
+      .tab-button.active {
+        background: #06c755;
+        color: white;
+      }
+      .tab-button:hover {
+        background: #05a647;
+        color: white;
+      }
+      .tab-content {
+        display: none;
+      }
+      .tab-content.active {
+        display: block;
+      }
+      /* セクションスタイル */
+      .section {
+        background: white;
+        border-radius: 12px;
+        padding: 25px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      }
+      .section h2 {
+        color: #06c755;
+        font-size: 1.2rem;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #e8f5e9;
+      }
+      .section h3 {
+        color: #333;
+        font-size: 1rem;
+        margin: 20px 0 10px;
+      }
+      .section p {
+        margin-bottom: 10px;
+        font-size: 0.95rem;
+      }
+      .section ul,
+      .section ol {
+        padding-left: 25px;
+        margin-bottom: 15px;
+      }
+      .section li {
+        margin-bottom: 8px;
+        font-size: 0.95rem;
+      }
+      /* 強調ボックス */
+      .highlight-box {
+        background: #e8f5e9;
+        border-left: 4px solid #06c755;
+        border-radius: 4px;
+        padding: 15px;
+        margin: 15px 0;
+      }
+      .highlight-box.warning {
+        background: #fff3cd;
+        border-left-color: #ffc107;
+      }
+      .highlight-box.info {
+        background: #e3f2fd;
+        border-left-color: #1976d2;
+      }
+      .highlight-box.important {
+        background: #fce4ec;
+        border-left-color: #c2185b;
+      }
+      /* Before/After比較 */
+      .comparison-section {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        margin: 20px 0;
+      }
+      @media (max-width: 768px) {
+        .comparison-section {
+          grid-template-columns: 1fr;
+        }
+      }
+      .comparison-box {
+        border-radius: 10px;
+        padding: 20px;
+      }
+      .comparison-box.before {
+        background: #f5f5f5;
+        border: 2px dashed #ccc;
+      }
+      .comparison-box.after {
+        background: #e8f5e9;
+        border: 2px solid #06c755;
+      }
+      .comparison-box h4 {
+        margin-bottom: 15px;
+        font-size: 1rem;
+      }
+      .comparison-box.before h4 {
+        color: #666;
+      }
+      .comparison-box.after h4 {
+        color: #06c755;
+      }
+      /* タイムライン */
+      .timeline {
+        position: relative;
+        padding-left: 30px;
+        margin: 15px 0;
+      }
+      .timeline::before {
+        content: '';
+        position: absolute;
+        left: 8px;
+        top: 0;
+        bottom: 0;
+        width: 3px;
+        background: #06c755;
+        border-radius: 3px;
+      }
+      .timeline-item {
+        position: relative;
+        margin-bottom: 15px;
+      }
+      .timeline-item::before {
+        content: '';
+        position: absolute;
+        left: -26px;
+        top: 4px;
+        width: 12px;
+        height: 12px;
+        background: #06c755;
+        border-radius: 50%;
+        border: 2px solid white;
+        box-shadow: 0 0 0 2px #06c755;
+      }
+      .timeline-date {
+        font-size: 0.85rem;
+        color: #06c755;
+        font-weight: bold;
+      }
+      .timeline-event {
+        font-size: 0.9rem;
+        color: #333;
+      }
+      /* ステップカード */
+      .steps-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 20px;
+        margin: 20px 0;
+      }
+      .step-card {
+        background: #fafafa;
+        border-radius: 12px;
+        padding: 20px;
+        border: 1px solid #eee;
+      }
+      .step-number {
+        width: 32px;
+        height: 32px;
+        background: #06c755;
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        margin-bottom: 10px;
+      }
+      .step-title {
+        font-weight: bold;
+        color: #06c755;
+        margin-bottom: 8px;
+      }
+      .step-description {
+        font-size: 0.9rem;
+        color: #666;
+      }
+      /* ポリシーセクション */
+      .policy-section {
+        margin-bottom: 25px;
+      }
+      .policy-section h3 {
+        color: #06c755;
+        font-size: 1.1rem;
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .policy-content {
+        background: #fafafa;
+        border-radius: 8px;
+        padding: 15px;
+        font-size: 0.9rem;
+      }
+      .policy-content p {
+        margin-bottom: 10px;
+      }
+      .policy-content ul {
+        padding-left: 20px;
+      }
+      /* FAQ */
+      .faq-item {
+        background: #fafafa;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 10px;
+      }
+      .faq-item .question {
+        color: #06c755;
+        font-weight: bold;
+        margin-bottom: 8px;
+      }
+      .faq-item .answer {
+        font-size: 0.9rem;
+        color: #555;
+      }
+      /* ロールバッジ */
+      .role-badge {
+        display: inline-block;
+        padding: 3px 10px;
+        border-radius: 15px;
+        font-size: 0.75rem;
+        font-weight: bold;
+      }
+      .role-badge.part-time {
+        background: #e3f2fd;
+        color: #1976d2;
+      }
+      .role-badge.full-time {
+        background: #fce4ec;
+        color: #c2185b;
+      }
+      /* フッター */
+      .footer {
+        text-align: center;
+        margin-top: 30px;
+        color: #999;
+        font-size: 0.8rem;
+      }
+      /* URLセクション */
+      .url-section {
+        background: white;
+        border: 2px solid #06c755;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 20px;
+        text-align: center;
+      }
+      .url-section h3 {
+        color: #06c755;
+        font-size: 1rem;
+        margin-bottom: 15px;
+      }
+      .url-section .url-box {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 10px;
+      }
+      .url-section .url-box a {
+        color: #007bff;
+        font-size: 1rem;
+        word-break: break-all;
+      }
+      .url-section .url-note {
+        color: #666;
+        font-size: 0.85rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <!-- ヘッダー -->
+      <div class="header">
+        <h1>スタッフ向け：シフトガイド</h1>
+      </div>
+
+      <!-- タブ切り替え -->
+      <div class="tab-container">
+        <button class="tab-button active" onclick="showTab('policy')">
+          シフト基本方針
+        </button>
+        <button class="tab-button" onclick="showTab('input')">
+          シフト入力・変更
+        </button>
+        <button class="tab-button" onclick="showTab('confirm')">
+          シフト確認
+        </button>
+      </div>
+
+      <!-- ========== シフト基本方針タブ ========== -->
+      <div id="policy" class="tab-content active">
+        <div class="section">
+          <h2>シフトの基本方針</h2>
+          <p>
+            月末に提出されるシフトは「確定スケジュール」ではなく、あくまで<strong>現時点での予定</strong>です。
+          </p>
+          <p>
+            体調不良・遅刻・アルバイトの予定変更など、日々の中で変動が生じる可能性があることを前提に、常に最新版を確認し、自分の勤務予定を正しく把握し責任を持つこと。
+          </p>
+        </div>
+
+        <div class="section">
+          <h2>シフト確認のお願い</h2>
+          <p>
+            シフトが出たら、必ず早めに<strong>自分の出勤日とその月の営業日を確認</strong>してください。
+          </p>
+          <p>
+            入力ミスや調整ミスに気づけるのは、一人ひとりの確認があってこそです。当日や前日では対応が難しいことがありますので、早めのチェックをお願いします。
+          </p>
+
+          <div class="highlight-box info">
+            <p>
+              <strong>社員の方へ：</strong
+              >営業日だけでなく<strong>予約状況の把握</strong>もお願いいたします。
+            </p>
+          </div>
+
+          <p>
+            少人数のチームで営業しているため、全員の確認と協力がとても大切です。
+          </p>
+
+          <ul>
+            <li>人数の過不足などもチェックしてください</li>
+            <li>
+              店休日・営業時間がイレギュラーになっている場合があります。予約の際はご注意ください
+            </li>
+            <li>
+              予約サイトの営業日変更を行っていますが、各店の社員は必ず確認してください
+            </li>
+            <li>
+              予約システムに登録されている営業日が実際の営業日とズレていないか、月初に必ずチェックし、営業日に止まっていないか、休業日に解放されていないかを確認・修正してください
+            </li>
+          </ul>
+
+          <div class="highlight-box warning">
+            <p><strong>シフト提出締切について：</strong></p>
+            <p>
+              4月から、シフト提出締切を毎月<strong>「17日」</strong>とさせていただきます。
+            </p>
+            <p style="font-size: 0.85rem; color: #666">
+              ※25日までにシフトを完成させるため、20日締切では間に合わない状況を改善
+            </p>
+          </div>
+        </div>
+
+        <div class="section">
+          <h2>すべてのスタッフに求められる姿勢</h2>
+          <p>チーム全体で店舗を運営しているという意識を持ちましょう。</p>
+          <p>
+            社員・アルバイト問わず、欠員が出た際は<strong>「みんなで支える」</strong>という意識を持ち、連携して対応することが大切です。
+          </p>
+
+          <p>
+            特に社員は、アルバイトスタッフの予定を最優先に考慮し、必要に応じて柔軟にフォロー・サポートする立場です。「自分は予定があるから出られない」と切り離すのではなく、問題解決に向けて行動し、解決まで遂行することが求められます。
+          </p>
+
+          <p>
+            チームで支え合い、店舗を開け続けるという意識が、日々の信頼構築と業務の継続性につながります。
+          </p>
+
+          <div class="highlight-box">
+            <p>
+              また、体調不良ややむを得ない事情で代わりに出勤してくれたスタッフには、<strong>きちんと感謝の気持ちを伝えましょう</strong>。
+            </p>
+            <p>
+              自分が代わってもらったことがあるのに、相手が困っている時には協力しないといった行動は、人としても信頼を損なう行為です。
+            </p>
+            <p>
+              日々の小さな積み重ねが、スタッフ間の信頼とチームワークの基盤となります。
+            </p>
+          </div>
+        </div>
+
+        <div class="section">
+          <h2>「休む＝報告」ではない</h2>
+          <p>
+            大切なのは、<strong>「お店がまわる」ことを最優先に考える責任感</strong>です。
+          </p>
+          <p>
+            やむを得ない理由で出勤できない場合、「休みます」と報告するだけでは不十分です。
+          </p>
+
+          <div class="highlight-box important">
+            <p><strong>休む際のルール：</strong></p>
+            <ul>
+              <li>代わりの人員を自分で探す努力をすること</li>
+              <li>代替依頼や交渉・相談を自ら行うこと</li>
+              <li>お願いした相手へ引き継ぎを正確に伝えること</li>
+            </ul>
+          </div>
+
+          <p>
+            これは責任感の表れであり、「自分が休むことで誰かに影響が出る」という認識を常に持つことが、チームの一員としての大切な姿勢です。
+          </p>
+          <p>
+            特に、1人でも欠けると営業が困難になる店舗では、<strong>「探さない」という選択肢はありません</strong>。
+          </p>
+        </div>
+
+        <div class="section">
+          <h2>チームを支えるリーダーとしての役割</h2>
+          <p>社員や店長は現場の軸として、仲間を導く立場です。</p>
+          <p>
+            とくにシフトに関する責任感は、リーダーとしての信頼構築に直結します。日々のシフト管理・交代時の対応・急な欠勤時の調整など、「お店が回る」ために率先して動けることが求められます。
+          </p>
+
+          <p>
+            「自分が出勤できるかどうか」ではなく、<strong>誰がどこで抜けたらどう補うかを常に考え、行動に移せる人</strong>がチームの信頼を得ます。
+          </p>
+
+          <p>また、以下の2点は最低限の前提となります：</p>
+          <ul>
+            <li>体調管理を含む自己管理</li>
+            <li>責任を持って出勤する姿勢</li>
+          </ul>
+
+          <p>頻繁な遅刻・欠勤が起きると：</p>
+          <ul>
+            <li>店舗運営に支障が出る</li>
+            <li>スタッフ同士の信頼を損なう</li>
+            <li>顧客満足度にも悪影響を与える</li>
+          </ul>
+
+          <p>
+            やむを得ない事情もあるとはいえ、「休まないための準備」や「健康管理」への取り組みは、チーム全体の信頼と運営の安定に直結します。
+          </p>
+
+          <div class="highlight-box warning">
+            <p><strong>店長の立場について：</strong></p>
+            <p>
+              店長はその中でも<strong>誰よりも強い責任を担うポジション</strong>です。「お店を開けることを最優先に考える」思考と行動が求められます。
+            </p>
+            <p>
+              シフトの調整や当日の判断も含め、最終的に責任を引き受ける立場であることを忘れずに。店長という役割は、一般企業でいう管理職に相当し、業務の継続性と安定を支える要です。
+            </p>
+            <p style="margin-top: 10px">
+              <strong
+                >肩書きがあるから店長なのではなく、信頼されるからこそ店長であり、信頼があるからこそ管理職が務まります。</strong
+              >
+            </p>
+            <p style="font-size: 0.85rem; color: #666; margin-top: 10px">
+              現在、役割が果たしきれていない部分がある場合は、その状況を他責にせず、自覚し、日々改善に取り組むことが店長としての大前提の責務です。
+            </p>
+          </div>
+
+          <div class="highlight-box info">
+            <p><strong>【内と外の信頼バランス】</strong></p>
+            <p>
+              外部からの評価を気にして外面ばかりを整え、内部（スタッフ）への配慮や支援が足りなくなるのは、よくある典型的な問題です。特にリーダー層にこの傾向があると、現場の信頼低下や不満に直結します。
+            </p>
+            <p>
+              「外からよく見える」状態を保ちつつ、「中の仲間からも信頼される」こと。これができてこそ、真にリーダーとして評価される存在になります。
+            </p>
+          </div>
+
+          <p
+            style="
+              margin-top: 20px;
+              text-align: center;
+              color: #06c755;
+              font-weight: bold;
+            "
+          >
+            このルールブックに則って、より安定した運営と風通しのよいチーム環境を築いていきましょう。
+          </p>
+        </div>
+      </div>
+
+      <!-- ========== シフト入力・変更タブ ========== -->
+      <div id="input" class="tab-content">
+        <div class="section">
+          <h2>ツールの変更について</h2>
+          <p>
+            <strong>大きな流れは変わりません。</strong
+            >使うツールがStockからLINEに変わっただけです。
+          </p>
+
+          <div class="comparison-section">
+            <div class="comparison-box before">
+              <h4>Before（Stock）</h4>
+              <div class="timeline">
+                <div class="timeline-item">
+                  <div class="timeline-date">1/3〜1/17</div>
+                  <div class="timeline-event">シフト提出期間</div>
+                </div>
+                <div class="timeline-item">
+                  <div class="timeline-date">1/17 12:00</div>
+                  <div class="timeline-event">シフト締め切り</div>
+                </div>
+                <div class="timeline-item">
+                  <div class="timeline-date">1/25頃</div>
+                  <div class="timeline-event">2月シフト確定</div>
+                </div>
+              </div>
+            </div>
+            <div class="comparison-box after">
+              <h4>After（LINE）</h4>
+              <div class="timeline">
+                <div class="timeline-item">
+                  <div class="timeline-date">1/3〜1/17</div>
+                  <div class="timeline-event">シフト提出期間</div>
+                </div>
+                <div class="timeline-item">
+                  <div class="timeline-date">1/17 12:00</div>
+                  <div class="timeline-event">シフト締め切り</div>
+                </div>
+                <div class="timeline-item">
+                  <div class="timeline-date">1/25頃</div>
+                  <div class="timeline-event">2月シフト確定</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="highlight-box">
+            <p>
+              <strong>変わったのは入力ツールだけ！</strong
+              >タイムラインは今までと同じです。
+            </p>
+          </div>
+
+          <!-- アプリURLセクション -->
+          <div class="url-section">
+            <h3>シフト入力アプリURL</h3>
+            <div class="url-box">
+              <a
+                href="https://shift-scheduler-ai-liff.vercel.app/"
+                target="_blank"
+              >
+                https://shift-scheduler-ai-liff.vercel.app/
+              </a>
+            </div>
+            <p class="url-note">
+              ※ LINEグループ内のリンクからもアクセスできます
+            </p>
+          </div>
+        </div>
+
+        <div class="section">
+          <h2>シフト入力の手順</h2>
+
+          <h3><span class="role-badge part-time">アルバイト</span> の場合</h3>
+          <p>出勤可能な日と時間を入力します。</p>
+
+          <div class="steps-container">
+            <div class="step-card">
+              <div class="step-number">1</div>
+              <div class="step-title">LINEグループのリンクをタップ</div>
+              <div class="step-description">
+                通知メッセージ内のリンクからシフト入力画面を開きます
+              </div>
+              <div
+                class="step-screenshot"
+                style="
+                  margin-top: 10px;
+                  padding: 20px;
+                  border: 2px dashed #ccc;
+                  border-radius: 6px;
+                  text-align: center;
+                  background-color: #f9f9f9;
+                "
+              >
+                <img
+                  src="images/step1-line-chat.png.jpg"
+                  alt="ステップ1"
+                  style="max-width: 100%; height: auto"
+                />
+              </div>
+            </div>
+            <div class="step-card">
+              <div class="step-number">2</div>
+              <div class="step-title">時間を入力</div>
+              <div class="step-description">開始時間と終了時間を設定します</div>
+              <div
+                class="step-screenshot"
+                style="
+                  margin-top: 10px;
+                  padding: 20px;
+                  border: 2px dashed #ccc;
+                  border-radius: 6px;
+                  text-align: center;
+                  background-color: #f9f9f9;
+                "
+              >
+                <img
+                  src="images/parttime-step2.jpg"
+                  alt="ステップ2"
+                  style="max-width: 100%; height: auto"
+                />
+              </div>
+            </div>
+            <div class="step-card">
+              <div class="step-number">3</div>
+              <div class="step-title">出勤可能な日をタップ</div>
+              <div class="step-description">
+                出勤できる日をタップして緑色にします
+              </div>
+              <div
+                class="step-screenshot"
+                style="
+                  margin-top: 10px;
+                  padding: 20px;
+                  border: 2px dashed #ccc;
+                  border-radius: 6px;
+                  text-align: center;
+                  background-color: #f9f9f9;
+                "
+              >
+                <img
+                  src="images/parttime-step3.jpg"
+                  alt="ステップ3"
+                  style="max-width: 100%; height: auto"
+                />
+              </div>
+            </div>
+            <div class="step-card">
+              <div class="step-number">4</div>
+              <div class="step-title">送信</div>
+              <div class="step-description">「送信」ボタンで提出完了</div>
+              <div
+                class="step-screenshot"
+                style="
+                  margin-top: 10px;
+                  padding: 20px;
+                  border: 2px dashed #ccc;
+                  border-radius: 6px;
+                  text-align: center;
+                  background-color: #f9f9f9;
+                "
+              >
+                <img
+                  src="images/parttime-step4.jpg"
+                  alt="ステップ4"
+                  style="max-width: 100%; height: auto"
+                />
+              </div>
+            </div>
+            <div class="step-card">
+              <div class="step-number">5</div>
+              <div class="step-title">カレンダーに反映</div>
+              <div class="step-description">
+                入力した希望がカレンダーに読み込まれて表示されます
+              </div>
+              <div
+                class="step-screenshot"
+                style="
+                  margin-top: 10px;
+                  padding: 20px;
+                  border: 2px dashed #ccc;
+                  border-radius: 6px;
+                  text-align: center;
+                  background-color: #f9f9f9;
+                "
+              >
+                <img
+                  src="images/parttime-step5.jpg"
+                  alt="ステップ5"
+                  style="max-width: 100%; height: auto"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div class="highlight-box info">
+            <p>
+              <strong>時間指定なしの場合：</strong
+              >時間は仮で入力し、コメント欄に「時間は柔軟に対応可能」などと記載してください。
+            </p>
+          </div>
+
+          <h3 style="margin-top: 30px">
+            <span class="role-badge full-time">社員</span> の場合
+          </h3>
+          <p>
+            出勤不可日を入力します。（出勤予定日の中から、出勤できない日を選択）
+          </p>
+
+          <div class="steps-container">
+            <div class="step-card">
+              <div class="step-number">1</div>
+              <div class="step-title">LINEグループのリンクをタップ</div>
+              <div class="step-description">
+                通知メッセージ内のリンクからシフト入力画面を開きます
+              </div>
+              <div
+                class="step-screenshot"
+                style="
+                  margin-top: 10px;
+                  padding: 20px;
+                  border: 2px dashed #ccc;
+                  border-radius: 6px;
+                  text-align: center;
+                  background-color: #f9f9f9;
+                "
+              >
+                <img
+                  src="images/step1-line-chat.png.jpg"
+                  alt="ステップ1"
+                  style="max-width: 100%; height: auto"
+                />
+              </div>
+            </div>
+            <div class="step-card">
+              <div class="step-number">2</div>
+              <div class="step-title">出勤不可日をタップ</div>
+              <div class="step-description">
+                出勤できない日をタップして赤色にします
+              </div>
+              <div
+                class="step-screenshot"
+                style="
+                  margin-top: 10px;
+                  padding: 20px;
+                  border: 2px dashed #ccc;
+                  border-radius: 6px;
+                  text-align: center;
+                  background-color: #f9f9f9;
+                "
+              >
+                <img
+                  src="images/fulltime-step2.jpg"
+                  alt="ステップ2"
+                  style="max-width: 100%; height: auto"
+                />
+              </div>
+            </div>
+            <div class="step-card">
+              <div class="step-number">3</div>
+              <div class="step-title">送信</div>
+              <div class="step-description">「送信」ボタンで提出完了</div>
+              <div
+                class="step-screenshot"
+                style="
+                  margin-top: 10px;
+                  padding: 20px;
+                  border: 2px dashed #ccc;
+                  border-radius: 6px;
+                  text-align: center;
+                  background-color: #f9f9f9;
+                "
+              >
+                <img
+                  src="images/fulltime-step3.jpg"
+                  alt="ステップ3"
+                  style="max-width: 100%; height: auto"
+                />
+              </div>
+            </div>
+            <div class="step-card">
+              <div class="step-number">4</div>
+              <div class="step-title">カレンダーに反映</div>
+              <div class="step-description">
+                入力した希望がカレンダーに読み込まれて表示されます
+              </div>
+              <div
+                class="step-screenshot"
+                style="
+                  margin-top: 10px;
+                  padding: 20px;
+                  border: 2px dashed #ccc;
+                  border-radius: 6px;
+                  text-align: center;
+                  background-color: #f9f9f9;
+                "
+              >
+                <img
+                  src="images/fulltime-step4.jpg"
+                  alt="ステップ4"
+                  style="max-width: 100%; height: auto"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div class="highlight-box">
+            <p>
+              緑枠で表示されている日が出勤予定日です。その中から出勤できない日を選んでください。
+            </p>
+            <p>
+              また、出勤予定日以外でも出勤不可日があればあわせて入力してください。
+            </p>
+          </div>
+        </div>
+
+        <div class="section">
+          <h2>シフト変更について</h2>
+
+          <h3>締切前の変更</h3>
+          <p>
+            <strong>LINE上で自由に変更可能</strong
+            >です。再度アプリを開いて入力し直してください。最後に送信した内容が反映されます。
+          </p>
+
+          <h3>締切後の変更</h3>
+          <div class="highlight-box important">
+            <p><strong>LINEグループで連絡</strong>してください。</p>
+            <p style="font-size: 0.9rem; color: #c2185b">
+              ※個人LINEでの連絡は禁止です。必ずグループ内で連絡してください。
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========== シフト確認タブ ========== -->
+      <div id="confirm" class="tab-content">
+        <div class="section">
+          <h2>シフトの確認方法</h2>
+          <p>確定したシフトは<strong>LINEノート</strong>に投稿されます。</p>
+
+          <div class="steps-container">
+            <div class="step-card">
+              <div class="step-number">1</div>
+              <div class="step-title">LINEグループを開く</div>
+              <div class="step-description">
+                シフト管理用のLINEグループを開きます
+              </div>
+            </div>
+            <div class="step-card">
+              <div class="step-number">2</div>
+              <div class="step-title">ノートを確認</div>
+              <div class="step-description">
+                グループの「ノート」タブを開きます
+              </div>
+            </div>
+            <div class="step-card">
+              <div class="step-number">3</div>
+              <div class="step-title">シフト表をダウンロード</div>
+              <div class="step-description">
+                投稿された写真をタップしてダウンロードします
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- フッター -->
+      <div class="footer">
+        <p>お問い合わせ：LINEグループでエリさんまでご連絡ください</p>
+      </div>
+    </div>
+
+    <script>
+      function showTab(tabId) {
+        // すべてのタブコンテンツを非表示
+        document.querySelectorAll('.tab-content').forEach(content => {
+          content.classList.remove('active');
+        });
+        // すべてのタブボタンを非アクティブ
+        document.querySelectorAll('.tab-button').forEach(button => {
+          button.classList.remove('active');
+        });
+        // 選択されたタブを表示
+        document.getElementById(tabId).classList.add('active');
+        // 選択されたボタンをアクティブ
+        event.target.classList.add('active');
+      }
+    </script>
+  </body>
+</html>

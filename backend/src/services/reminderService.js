@@ -63,9 +63,15 @@ export function getDaysUntilDeadline(
  * @param {number} year - 対象年
  * @param {number} month - 対象月
  * @param {number} deadlineDay - 締切日
- * @returns {string} 締切日文字列（例: "12月10日"）
+ * @param {string} deadlineTime - 締切時刻（"HH:MM"形式、省略時は時刻なし）
+ * @returns {string} 締切日文字列（例: "12月10日 23:59"）
  */
-export function getDeadlineString(year, month, deadlineDay) {
+export function getDeadlineString(
+  year,
+  month,
+  deadlineDay,
+  deadlineTime = null
+) {
   // N月のシフト締切はN-1月のdeadlineDay日
   let deadlineMonth = month - 1;
 
@@ -73,7 +79,14 @@ export function getDeadlineString(year, month, deadlineDay) {
     deadlineMonth = 12;
   }
 
-  return `${deadlineMonth}月${deadlineDay}日`;
+  const dateStr = `${deadlineMonth}月${deadlineDay}日`;
+
+  // 締切時刻が指定されていれば追記
+  if (deadlineTime) {
+    return `${dateStr} ${deadlineTime}`;
+  }
+
+  return dateStr;
 }
 
 /**
@@ -132,6 +145,19 @@ export async function sendReminderNotification(year, month) {
     return { success: true, notified: false, reason: 'No phase matched' };
   }
 
+  // フェーズ1~3は自動送信しない（手動APIのみ）
+  if (phase.phase >= 1 && phase.phase <= 3) {
+    console.log(
+      `📭 Phase ${phase.phase} skipped (manual only via /api/send-reminder-phase)`
+    );
+    return {
+      success: true,
+      notified: false,
+      reason: 'Phase 1-3 is manual only',
+      skippedPhase: phase.phase,
+    };
+  }
+
   console.log(`📢 Phase ${phase.phase} (${phase.type}) triggered`);
 
   // グループIDを取得
@@ -151,10 +177,15 @@ export async function sendReminderNotification(year, month) {
     unsubmittedNames = await getUnsubmittedNamesString(tenantId, year, month);
   }
 
-  // メッセージを作成（DBの締切日を使用）
+  // メッセージを作成（DBの締切日・締切時刻を使用）
   const message = formatMessage(phase.message, {
     targetMonth: month,
-    deadline: getDeadlineString(year, month, deadlineSettings.deadline_day),
+    deadline: getDeadlineString(
+      year,
+      month,
+      deadlineSettings.deadline_day,
+      deadlineSettings.deadline_time
+    ),
     liffUrl: getLiffUrl(),
     totalCount: stats.totalCount,
     submittedCount: stats.submittedCount,
@@ -199,4 +230,82 @@ export async function sendAutoReminder() {
 // 旧関数との互換性を維持（既存のcronジョブ用）
 export async function sendShiftReminders(year, month) {
   return await sendReminderNotification(year, month);
+}
+
+/**
+ * 指定したフェーズのリマインド通知を送信（手動送信用）
+ * @param {number} year - 対象年
+ * @param {number} month - 対象月
+ * @param {number} phaseNumber - フェーズ番号（1=7日前, 2=3日前, 3=1日前, 4=締切後）
+ * @returns {Promise<Object>} 送信結果
+ */
+export async function sendReminderByPhase(year, month, phaseNumber) {
+  const tenantId = parseInt(process.env.TENANT_ID, 10) || 3;
+
+  console.log(
+    `📅 Manual reminder for ${year}/${month}, phase ${phaseNumber}, tenant ${tenantId}`
+  );
+
+  // 指定されたフェーズを取得
+  const config = getNotificationConfig();
+  const phase = config.reminders.find(r => r.phase === phaseNumber);
+
+  if (!phase) {
+    console.error(`❌ Invalid phase number: ${phaseNumber}`);
+    return {
+      success: false,
+      error: `Invalid phase number: ${phaseNumber}. Valid phases are 1-4.`,
+    };
+  }
+
+  console.log(`📢 Phase ${phase.phase} (${phase.type}) - manual trigger`);
+
+  // グループIDを取得
+  const groupId = getGroupIdByTenant(tenantId);
+  if (!groupId) {
+    console.warn(`⚠️ No group configured for tenant ${tenantId}`);
+    return { success: true, notified: false, reason: 'No group configured' };
+  }
+
+  // DBからアルバイトの締切設定を取得
+  const deadlineSettings = await getPartTimeDeadlineSettings(tenantId);
+  console.log('📋 Deadline settings from DB:', deadlineSettings);
+
+  // 統計情報を取得（フェーズ2, 3で使用）
+  const stats = await getPartTimeSubmissionStats(tenantId, year, month);
+  console.log('📊 Submission stats:', stats);
+
+  // 未提出者名を取得（フェーズ3で使用）
+  let unsubmittedNames = '';
+  if (phase.type === 'named') {
+    unsubmittedNames = await getUnsubmittedNamesString(tenantId, year, month);
+  }
+
+  // メッセージを作成（DBの締切日・締切時刻を使用）
+  const message = formatMessage(phase.message, {
+    targetMonth: month,
+    deadline: getDeadlineString(
+      year,
+      month,
+      deadlineSettings.deadline_day,
+      deadlineSettings.deadline_time
+    ),
+    liffUrl: getLiffUrl(),
+    totalCount: stats.totalCount,
+    submittedCount: stats.submittedCount,
+    unsubmittedCount: stats.unsubmittedCount,
+    unsubmittedNames: unsubmittedNames,
+  });
+
+  // グループに送信
+  const sent = await sendGroupMessage(groupId, message);
+
+  return {
+    success: true,
+    notified: sent,
+    phase: phase.phase,
+    type: phase.type,
+    stats: stats,
+    deadlineSettings: deadlineSettings,
+  };
 }

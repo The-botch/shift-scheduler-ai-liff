@@ -100,6 +100,7 @@
         text-align: center;
       }
       .cell {
+        position: relative;
         border: 1px solid var(--gray);
         background: #fff;
         border-radius: 12px;
@@ -137,13 +138,31 @@
         background: var(--red-weak);
         border-color: var(--red);
       }
-      .label {
-        font-size: 9px;
-        padding: 2px 4px;
-        border-radius: 999px;
+      /* 社員向け：第1案で出勤予定がある日（緑枠） */
+      .cell.first-plan-day {
+        border: 2px solid var(--green);
+      }
+      .cell.first-plan-day .shift-time {
+        font-size: 6px;
+        color: var(--green);
+        font-weight: 600;
         white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+      }
+      /* 選択時は赤で上書き */
+      .cell.first-plan-day.em-selected {
+        background: var(--red-weak);
+        border-color: var(--red);
+      }
+      .cell.first-plan-day.em-selected .shift-time {
+        color: #b91c1c;
+      }
+      .label {
+        font-size: 6px;
+        padding: 2px 3px;
+        border-radius: 8px;
+        text-align: center;
+        line-height: 1.2;
+        white-space: pre-line;
         max-width: 100%;
       }
       .toolbar {
@@ -490,7 +509,7 @@
       let mode = 'time'; // "pattern" or "time"
       let cur = new Date();
       const currentDay = cur.getDate();
-      if (currentDay <= 20) {
+      if (currentDay <= 25) {
         cur.setMonth(cur.getMonth() + 1); // 来月
       } else {
         cur.setMonth(cur.getMonth() + 2); // 再来月
@@ -502,6 +521,7 @@
       let rolesMap = new Map(); // role_code -> role_id のマッピング
       let deadlineSettingsMap = new Map(); // employment_type -> {deadline_day, deadline_time, is_enabled}
       let firstPlanWorkDays = []; // 社員用: 第一案の出勤日リスト (YYYY-MM-DD形式)
+      let firstPlanShiftTimes = new Map(); // 社員用: 第一案の出勤日→時刻 (YYYY-MM-DD -> {start, end})
       let firstPlanExists = false; // アルバイト用: 第1案が存在するかどうか
       let firstPlanExistsForEmp = false; // 社員用: 第1案が存在するかどうか（シフト有無とは別）
       let monthlyCommentData = null; // 月次コメントデータ
@@ -817,6 +837,7 @@
       async function loadFirstPlanIfEmployee() {
         if (role !== 'emp' || !selectedStaff) {
           firstPlanWorkDays = [];
+          firstPlanShiftTimes.clear();
           firstPlanExistsForEmp = false;
           return;
         }
@@ -834,6 +855,7 @@
           if (!plansData.success) {
             firstPlanExistsForEmp = false;
             firstPlanWorkDays = [];
+            firstPlanShiftTimes.clear();
             console.warn(`${year}年${month}月のプラン取得に失敗しました`);
             updateRoleInfo();
             return;
@@ -847,6 +869,7 @@
           if (!firstPlanExistsForEmp) {
             // 第1案が存在しない
             firstPlanWorkDays = [];
+            firstPlanShiftTimes.clear();
             console.warn(`${year}年${month}月の第1案が未作成です`);
             updateRoleInfo();
             return;
@@ -856,23 +879,32 @@
             `${year}年${month}月の第1案が存在します（plan_id: ${firstPlan.plan_id}）`
           );
 
-          // 2. 第1案が存在する場合、このスタッフのシフトを取得
+          // 2. 第1案が存在する場合、このスタッフのシフトを全店舗から取得
+          // （社員は所属店舗以外でも勤務する可能性があるため）
           const firstPlanRes = await fetch(
-            `${API_BASE}/api/shifts/?tenant_id=${TENANT_ID}&store_id=${selectedStaff.store_id}&staff_id=${selectedStaff.staff_id}&year=${year}&month=${month}&plan_type=FIRST`
+            `${API_BASE}/api/shifts/?tenant_id=${TENANT_ID}&staff_id=${selectedStaff.staff_id}&year=${year}&month=${month}&plan_type=FIRST`
           );
           const firstPlanData = await firstPlanRes.json();
 
           if (!firstPlanData.success || firstPlanData.count === 0) {
             // 第1案はあるがシフトなし
             firstPlanWorkDays = [];
+            firstPlanShiftTimes.clear();
             console.warn(
               `${year}年${month}月の第1案にあなたのシフトがありません`
             );
           } else {
-            // 出勤日リストを作成
+            // 出勤日リストと時刻情報を作成
             firstPlanWorkDays = firstPlanData.data.map(
               shift => shift.shift_date
             );
+            firstPlanShiftTimes.clear();
+            firstPlanData.data.forEach(shift => {
+              firstPlanShiftTimes.set(shift.shift_date, {
+                start: shift.start_time,
+                end: shift.end_time,
+              });
+            });
             console.log(
               `${year}年${month}月の第1案: ${firstPlanWorkDays.length}日の出勤予定`
             );
@@ -881,6 +913,7 @@
           console.error('第一案取得エラー:', error);
           firstPlanExistsForEmp = false;
           firstPlanWorkDays = [];
+          firstPlanShiftTimes.clear();
         }
 
         // UIを更新
@@ -1230,11 +1263,12 @@
           あなたの出勤予定がありません。管理者にお問い合わせください。
         `;
           } else {
-            // パターン3: 通常（休み選択可能）
+            // パターン3: 通常（出勤不可日選択可能）
             roleInfo.style.background = 'var(--red-weak)';
             roleInfo.innerHTML = `
           <strong style="color:#b91c1c">🚫 社員</strong><br>
-          第1案の出勤日から、休みたい日を<strong style="color:#b91c1c">赤</strong>で選択してください
+          出勤できない日を<strong style="color:#b91c1c">赤</strong>で選択してください<br>
+          <span style="font-size:11px;color:#666">（緑＝第1案で出勤予定の日）</span>
         `;
           }
           // 社員の場合は時刻入力を非表示
@@ -1620,11 +1654,17 @@
             cell.style.opacity = '0.3';
             cell.style.cursor = 'not-allowed';
           }
-          // 社員の場合：第一案の出勤日でない日をグレーアウト
-          else if (role === 'emp' && !firstPlanWorkDays.includes(key)) {
-            cell.classList.add('disabled');
-            cell.style.opacity = '0.3';
-            cell.style.cursor = 'not-allowed';
+          // 社員の場合：第1案の出勤日にマーカーと時刻を表示（選択は任意の日でOK）
+          if (role === 'emp' && firstPlanWorkDays.includes(key)) {
+            cell.classList.add('first-plan-day');
+            // 出勤時刻を表示（開始-終了形式）
+            const shiftTime = firstPlanShiftTimes.get(key);
+            if (shiftTime && shiftTime.start && shiftTime.end) {
+              const timeLabel = document.createElement('div');
+              timeLabel.className = 'shift-time';
+              timeLabel.textContent = `${formatTime(shiftTime.start)}-${formatTime(shiftTime.end)}`;
+              cell.appendChild(timeLabel);
+            }
           }
 
           // 既存選択の反映
@@ -1635,7 +1675,7 @@
               label.textContent = val.label || 'OK';
             } else {
               cell.classList.add('em-selected');
-              label.textContent = '休み';
+              label.textContent = '出勤不可';
             }
           } else {
             label.style.display = 'none';
@@ -1704,16 +1744,11 @@
 
         // 新規選択
         if (role === 'emp') {
-          // 社員の場合：第一案の出勤日のみ選択可能
-          if (!firstPlanWorkDays.includes(key)) {
-            alert('第1案で出勤日になっている日のみ選択できます');
-            return;
-          }
-
+          // 社員の場合：任意の日を出勤不可日として選択可能
           selected.set(key, { type: 'emp' });
           cell.classList.add('em-selected');
           label.style.display = 'block';
-          label.textContent = '休み';
+          label.textContent = '出勤不可';
         } else {
           // アルバイト：パターン/時刻適用
           let start, end, tag;
@@ -1724,8 +1759,8 @@
           } else {
             start = document.getElementById('startTime').value || '09:00';
             end = document.getElementById('endTime').value || '18:00';
-            // カレンダー表示用に短縮形を作成
-            tag = `${formatTime(start)}-${formatTime(end)}`;
+            // カレンダー表示用に2行で作成
+            tag = `${formatTime(start)}\n-${formatTime(end)}`;
           }
           selected.set(key, { type: 'part', start, end, label: tag });
           cell.classList.add('pt-selected');
@@ -1831,7 +1866,7 @@
 
         if (role === 'emp') {
           tip.innerHTML =
-            '赤い日が「休み希望」です。選択した日が休み希望として登録されます。';
+            '赤い日が「出勤不可日」です。選択した日が出勤不可日として登録されます。';
           block.style.display = 'none';
         } else {
           tip.innerHTML =

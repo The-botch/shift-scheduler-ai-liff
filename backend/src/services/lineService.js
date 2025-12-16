@@ -135,12 +135,12 @@ export function formatMessage(template, variables) {
 }
 
 /**
- * LIFF URLを生成
- * @returns {string} LIFF URL
+ * アプリURLを取得
+ * 環境変数APP_URLで切り替え可能（STG/PRD）
+ * @returns {string} アプリURL
  */
 export function getLiffUrl() {
-  const liffId = process.env.LIFF_ID || '2008227932-Rq9rJrJn';
-  return `https://liff.line.me/${liffId}`;
+  return process.env.APP_URL || 'https://shift-scheduler-ai-liff.vercel.app/';
 }
 
 /**

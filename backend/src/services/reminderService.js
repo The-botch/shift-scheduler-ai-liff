@@ -98,8 +98,8 @@ export function determinePhase(daysUntilDeadline) {
   const config = getNotificationConfig();
   const reminders = config.reminders;
 
-  // フェーズ4: 締切後（0日以下）
-  if (daysUntilDeadline <= 0) {
+  // フェーズ4: 締切日当日（0日）
+  if (daysUntilDeadline === 0) {
     return reminders.find(r => r.phase === 4);
   }
 

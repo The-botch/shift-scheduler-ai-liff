@@ -202,6 +202,7 @@
         width: auto;
         max-width: 140px;
         flex: 0 0 auto;
+        font-size: 18px;
       }
       .footerbar {
         position: sticky;
@@ -1952,54 +1953,58 @@
         try {
           const results = [];
 
-          // シフト希望がある場合は送信
-          if (hasShifts) {
-            // 選択された日付を1日1レコード形式の配列に変換
-            const preferences = [];
+          // シフト希望を送信（0件でも既存データ削除のため必ず呼ぶ）
+          // 選択された日付を1日1レコード形式の配列に変換
+          const preferences = [];
 
-            selected.forEach((value, key) => {
-              // key = "YYYY-MM-DD" 形式の日付
-              const pref = {
-                preference_date: key,
-                is_ng: value.type === 'emp', // 社員の場合はNG日
-                notes: '',
-              };
-
-              // アルバイトの場合は時刻情報を追加
-              if (value.type === 'part') {
-                pref.start_time = value.start || null;
-                pref.end_time = value.end || null;
-              }
-
-              preferences.push(pref);
-            });
-
-            // 一括登録APIを使用
-            const requestBody = {
-              tenant_id: TENANT_ID,
-              store_id: selectedStaff.store_id,
-              staff_id: selectedStaff.staff_id,
-              preferences: preferences,
+          selected.forEach((value, key) => {
+            // key = "YYYY-MM-DD" 形式の日付
+            const pref = {
+              preference_date: key,
+              is_ng: value.type === 'emp', // 社員の場合はNG日
+              notes: '',
             };
 
-            const url = `${API_BASE}/api/shifts/preferences/bulk`;
-
-            const response = await fetch(url, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${window._login.idToken}`,
-              },
-              body: JSON.stringify(requestBody),
-            });
-
-            const result = await response.json();
-
-            if (result.success) {
-              results.push(`シフト希望${result.inserted}件`);
-            } else {
-              throw new Error(result.error || 'シフト送信に失敗しました');
+            // アルバイトの場合は時刻情報を追加
+            if (value.type === 'part') {
+              pref.start_time = value.start || null;
+              pref.end_time = value.end || null;
             }
+
+            preferences.push(pref);
+          });
+
+          // 一括登録APIを使用
+          const requestBody = {
+            tenant_id: TENANT_ID,
+            store_id: selectedStaff.store_id,
+            staff_id: selectedStaff.staff_id,
+            preferences: preferences,
+            year: year,
+            month: month,
+          };
+
+          const url = `${API_BASE}/api/shifts/preferences/bulk`;
+
+          const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${window._login.idToken}`,
+            },
+            body: JSON.stringify(requestBody),
+          });
+
+          const result = await response.json();
+
+          if (result.success) {
+            if (result.inserted > 0) {
+              results.push(`シフト希望${result.inserted}件`);
+            } else if (result.deleted > 0) {
+              results.push(`シフト希望クリア`);
+            }
+          } else {
+            throw new Error(result.error || 'シフト送信に失敗しました');
           }
 
           // コメントを保存

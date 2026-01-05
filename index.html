@@ -419,7 +419,7 @@
             resize: vertical;
             margin-top: 8px;
           "
-          placeholder="シフトに関する希望や連絡事項があれば入力してください（例：土日は午後出勤希望、来月は試験期間のため少なめ希望など）"
+          placeholder="シフトに関する希望や連絡事項があれば入力してください（例：土日は午後出勤希望、来月は試験期間のため少なめ希望、○日は有給休暇を希望など）"
           maxlength="500"
         ></textarea>
         <div class="helper small" style="margin-top: 4px">
@@ -1270,7 +1270,7 @@
             roleInfo.innerHTML = `
           <strong style="color:#b91c1c">🚫 社員</strong><br>
           出勤できない日を<strong style="color:#b91c1c">赤</strong>で選択してください<br>
-          <span style="font-size:11px;color:#666">（緑＝第1案で出勤予定の日）</span>
+          <span style="font-size:11px;color:#666">（緑＝シフト案で出勤予定の日）</span>
         `;
           }
           // 社員の場合は時刻入力を非表示

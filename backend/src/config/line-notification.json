@@ -1,18 +1,18 @@
 {
   "groups": {
     "tenant_3_stg": {
-      "groupId": "Ca40304397e068af4a489d1c1bd139556",
-      "name": "Shifts（STG）",
-      "description": "STG環境用グループ"
+      "groupId": "C2a7fc3749caa5d026c689f85fe08fd58",
+      "name": "通知テストグループ（STG）",
+      "description": "STG環境用テストグループ"
     },
     "tenant_3_prd": {
-      "groupId": "Cdad77090cc64c7ad24cb9d6d1e01509f",
-      "name": "SBM.シフト提出グループ",
-      "description": "PRD環境用本番グループ"
+      "groupId": "Ca40304397e068af4a489d1c1bd139556",
+      "name": "本番スタッフグループ（仮）",
+      "description": "PRD環境用本番グループ。本番検証完了後、正式な本番グループIDに更新すること"
     },
     "tenant_3": {
-      "groupId": "Ca40304397e068af4a489d1c1bd139556",
-      "name": "Shifts",
+      "groupId": "C2a7fc3749caa5d026c689f85fe08fd58",
+      "name": "通知テストグループ",
       "description": "フォールバック用"
     }
   },

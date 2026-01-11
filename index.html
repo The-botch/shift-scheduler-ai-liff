@@ -1270,8 +1270,8 @@
             roleInfo.style.background = 'var(--red-weak)';
             roleInfo.innerHTML = `
           <strong style="color:#b91c1c">🚫 社員</strong><br>
-          出勤できない日を<strong style="color:#b91c1c">赤</strong>で選択してください<br>
-          <span style="font-size:11px;color:#666">（緑＝シフト案で出勤予定の日）</span>
+<span style="font-size:12px">正社員の方は、休暇希望を<strong>freee人事労務</strong>から別途申請してください。</span><br>
+          <span style="font-size:11px;color:#666">ここでの入力はシフト作成の参考用となります。</span>
         `;
           }
           // 社員の場合は時刻入力を非表示
@@ -1867,7 +1867,7 @@
 
         if (role === 'emp') {
           tip.innerHTML =
-            '赤い日が「出勤不可日」です。選択した日が出勤不可日として登録されます。';
+            '赤い日が「出勤不可日」です。選択した日が出勤不可日として登録されます。<br>（緑の日はシフト案での出勤予定日）';
           block.style.display = 'none';
         } else {
           tip.innerHTML =

@@ -11,15 +11,13 @@ dotenv.config();
  * @returns {Promise<Object>} 提出状況の統計情報
  */
 export async function getPartTimeSubmissionStats(tenantId, year, month) {
-  // アルバイト（PART_TIME）の総数を取得
+  // アルバイト（PART_TIME）の総数を取得（LINE連携有無に関わらず全員をカウント）
   const totalQuery = `
     SELECT COUNT(*) as total_count
     FROM hr.staff s
-    JOIN hr.staff_line_accounts sla ON s.staff_id = sla.staff_id AND s.tenant_id = sla.tenant_id
     JOIN core.employment_types et ON s.employment_type = et.employment_code AND et.tenant_id = s.tenant_id
     WHERE s.tenant_id = $1
       AND s.is_active = true
-      AND sla.is_active = true
       AND et.employment_code = 'PART_TIME'
   `;
 
@@ -27,12 +25,10 @@ export async function getPartTimeSubmissionStats(tenantId, year, month) {
   const submittedQuery = `
     SELECT COUNT(DISTINCT s.staff_id) as submitted_count
     FROM hr.staff s
-    JOIN hr.staff_line_accounts sla ON s.staff_id = sla.staff_id AND s.tenant_id = sla.tenant_id
     JOIN core.employment_types et ON s.employment_type = et.employment_code AND et.tenant_id = s.tenant_id
     JOIN ops.staff_monthly_submissions sms ON s.staff_id = sms.staff_id AND s.tenant_id = sms.tenant_id
     WHERE s.tenant_id = $1
       AND s.is_active = true
-      AND sla.is_active = true
       AND et.employment_code = 'PART_TIME'
       AND sms.year = $2
       AND sms.month = $3
@@ -70,7 +66,7 @@ export async function getPartTimeSubmissionStats(tenantId, year, month) {
  * @returns {Promise<Array>} 未提出スタッフの配列
  */
 export async function getUnsubmittedPartTimeStaff(tenantId, year, month) {
-  // staff_monthly_submissionsテーブルを参照して未提出者を取得
+  // staff_monthly_submissionsテーブルを参照して未提出者を取得（LINE連携有無に関わらず全員を対象）
   const query = `
     SELECT
       sla.line_user_id,
@@ -78,12 +74,11 @@ export async function getUnsubmittedPartTimeStaff(tenantId, year, month) {
       s.name,
       s.employment_type,
       st.store_name
-    FROM hr.staff_line_accounts sla
-    JOIN hr.staff s ON sla.staff_id = s.staff_id AND sla.tenant_id = s.tenant_id
+    FROM hr.staff s
     JOIN core.stores st ON s.store_id = st.store_id
     JOIN core.employment_types et ON s.employment_type = et.employment_code AND et.tenant_id = s.tenant_id
-    WHERE sla.tenant_id = $1
-      AND sla.is_active = true
+    LEFT JOIN hr.staff_line_accounts sla ON s.staff_id = sla.staff_id AND s.tenant_id = sla.tenant_id AND sla.is_active = true
+    WHERE s.tenant_id = $1
       AND s.is_active = true
       AND et.employment_code = 'PART_TIME'
       AND NOT EXISTS (

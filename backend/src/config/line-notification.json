@@ -36,7 +36,7 @@
       "daysBefore": 1,
       "type": "named",
       "targetOnly": "partTime",
-      "message": "【シフト希望 締切前日】\n\n{targetMonth}月分の未提出者（アルバイト）:\n{unsubmittedNames}\n\n明日 {deadline} が締切です。\n入力はこちら: {liffUrl}"
+      "message": "【シフト希望 締切間近】\n\n{targetMonth}月分の未提出者（アルバイト）:\n{unsubmittedNames}\n\n{deadline}までにご提出ください。\n入力はこちら: {liffUrl}"
     },
     {
       "phase": 4,

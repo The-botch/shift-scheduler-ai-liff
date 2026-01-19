@@ -359,22 +359,58 @@
         <div id="timeBox" style="margin-top: 10px">
           <div class="section-title">時刻入力</div>
           <div class="row">
-            <input
-              type="time"
-              id="startTime"
-              class="select time-input"
-              value="09:00"
-            />
+            <select id="startTime" class="select time-input">
+              <option value="05:00">05:00</option>
+              <option value="06:00">06:00</option>
+              <option value="07:00">07:00</option>
+              <option value="08:00">08:00</option>
+              <option value="09:00" selected>09:00</option>
+              <option value="10:00">10:00</option>
+              <option value="11:00">11:00</option>
+              <option value="12:00">12:00</option>
+              <option value="13:00">13:00</option>
+              <option value="14:00">14:00</option>
+              <option value="15:00">15:00</option>
+              <option value="16:00">16:00</option>
+              <option value="17:00">17:00</option>
+              <option value="18:00">18:00</option>
+              <option value="19:00">19:00</option>
+              <option value="20:00">20:00</option>
+              <option value="21:00">21:00</option>
+              <option value="22:00">22:00</option>
+              <option value="23:00">23:00</option>
+            </select>
             <span class="helper" style="align-self: center">〜</span>
-            <input
-              type="time"
-              id="endTime"
-              class="select time-input"
-              value="18:00"
-            />
+            <select id="endTime" class="select time-input">
+              <option value="06:00">06:00</option>
+              <option value="07:00">07:00</option>
+              <option value="08:00">08:00</option>
+              <option value="09:00">09:00</option>
+              <option value="10:00">10:00</option>
+              <option value="11:00">11:00</option>
+              <option value="12:00">12:00</option>
+              <option value="13:00">13:00</option>
+              <option value="14:00">14:00</option>
+              <option value="15:00">15:00</option>
+              <option value="16:00">16:00</option>
+              <option value="17:00">17:00</option>
+              <option value="18:00" selected>18:00</option>
+              <option value="19:00">19:00</option>
+              <option value="20:00">20:00</option>
+              <option value="21:00">21:00</option>
+              <option value="22:00">22:00</option>
+              <option value="23:00">23:00</option>
+              <option value="24:00">24:00（翌0時）</option>
+              <option value="25:00">25:00（翌1時）</option>
+              <option value="26:00">26:00（翌2時）</option>
+              <option value="27:00">27:00（翌3時）</option>
+              <option value="28:00">28:00（翌4時）</option>
+              <option value="29:00">29:00（翌5時）</option>
+            </select>
           </div>
           <div class="helper small">
-            指定した開始・終了時刻が、新規選択した日に適用されます（時間単位）。
+            指定した開始・終了時刻が、新規選択した日に適用されます（時間単位）。<br>
+            ※深夜勤務は24:00以降を選択してください
           </div>
         </div>
       </div>

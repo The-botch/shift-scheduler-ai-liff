@@ -204,6 +204,23 @@
         flex: 0 0 auto;
         font-size: 18px;
       }
+      .time-select-group {
+        display: flex;
+        gap: 4px;
+        align-items: center;
+      }
+      .time-select-hour {
+        width: auto;
+        min-width: 90px;
+        padding: 8px 10px;
+        font-size: 16px;
+      }
+      .time-select-minute {
+        width: auto;
+        min-width: 70px;
+        padding: 8px 10px;
+        font-size: 16px;
+      }
       .footerbar {
         position: sticky;
         bottom: 0;
@@ -359,22 +376,74 @@
         <div id="timeBox" style="margin-top: 10px">
           <div class="section-title">時刻入力</div>
           <div class="row">
-            <input
-              type="time"
-              id="startTime"
-              class="select time-input"
-              value="09:00"
-            />
+            <div class="time-select-group">
+              <select id="startHour" class="select time-select-hour">
+                <option value="5">5時</option>
+                <option value="6">6時</option>
+                <option value="7">7時</option>
+                <option value="8">8時</option>
+                <option value="9" selected>9時</option>
+                <option value="10">10時</option>
+                <option value="11">11時</option>
+                <option value="12">12時</option>
+                <option value="13">13時</option>
+                <option value="14">14時</option>
+                <option value="15">15時</option>
+                <option value="16">16時</option>
+                <option value="17">17時</option>
+                <option value="18">18時</option>
+                <option value="19">19時</option>
+                <option value="20">20時</option>
+                <option value="21">21時</option>
+                <option value="22">22時</option>
+                <option value="23">23時</option>
+              </select>
+              <select id="startMinute" class="select time-select-minute">
+                <option value="00" selected>00分</option>
+                <option value="15">15分</option>
+                <option value="30">30分</option>
+                <option value="45">45分</option>
+              </select>
+            </div>
             <span class="helper" style="align-self: center">〜</span>
-            <input
-              type="time"
-              id="endTime"
-              class="select time-input"
-              value="18:00"
-            />
+            <div class="time-select-group">
+              <select id="endHour" class="select time-select-hour">
+                <option value="6">6時</option>
+                <option value="7">7時</option>
+                <option value="8">8時</option>
+                <option value="9">9時</option>
+                <option value="10">10時</option>
+                <option value="11">11時</option>
+                <option value="12">12時</option>
+                <option value="13">13時</option>
+                <option value="14">14時</option>
+                <option value="15">15時</option>
+                <option value="16">16時</option>
+                <option value="17">17時</option>
+                <option value="18" selected>18時</option>
+                <option value="19">19時</option>
+                <option value="20">20時</option>
+                <option value="21">21時</option>
+                <option value="22">22時</option>
+                <option value="23">23時</option>
+                <option value="24">24時（翌0時）</option>
+                <option value="25">25時（翌1時）</option>
+                <option value="26">26時（翌2時）</option>
+                <option value="27">27時（翌3時）</option>
+                <option value="28">28時（翌4時）</option>
+                <option value="29">29時（翌5時）</option>
+              </select>
+              <select id="endMinute" class="select time-select-minute">
+                <option value="00" selected>00分</option>
+                <option value="15">15分</option>
+                <option value="30">30分</option>
+                <option value="45">45分</option>
+              </select>
+            </div>
           </div>
           <div class="helper small">
-            指定した開始・終了時刻が、新規選択した日に適用されます（時間単位）。
+            指定した開始・終了時刻が、新規選択した日に適用されます。<br />
+            ※深夜勤務は24時以降を選択してください
           </div>
         </div>
       </div>
@@ -1757,8 +1826,15 @@
             end = currentPattern.end;
             tag = currentPattern.key;
           } else {
-            start = document.getElementById('startTime').value || '09:00';
-            end = document.getElementById('endTime').value || '18:00';
+            // 時・分セレクトから時刻を組み立て
+            const startHour = document.getElementById('startHour').value || '9';
+            const startMinute =
+              document.getElementById('startMinute').value || '00';
+            const endHour = document.getElementById('endHour').value || '18';
+            const endMinute =
+              document.getElementById('endMinute').value || '00';
+            start = `${startHour.padStart(2, '0')}:${startMinute}`;
+            end = `${endHour.padStart(2, '0')}:${endMinute}`;
             // カレンダー表示用に2行で作成
             tag = `${formatTime(start)}\n-${formatTime(end)}`;
           }

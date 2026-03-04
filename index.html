@@ -398,17 +398,21 @@
         <!-- 入力モード切替（アルバイトのみ表示） -->
         <div id="inputModeToggle" style="margin-top: 10px; display: none">
           <div class="input-mode-toggle">
-            <button class="toggle-btn active" id="modeTimeBtn">時刻入力</button>
-            <button class="toggle-btn" id="modeAlldayBtn">希望日入力</button>
+            <button class="toggle-btn active" id="modeTimeBtn">
+              時刻入力あり
+            </button>
+            <button class="toggle-btn" id="modeAlldayBtn">
+              時刻入力なし（日付指定）
+            </button>
           </div>
         </div>
 
         <!-- 希望日入力モードのメッセージ -->
         <div id="alldayBox" style="margin-top: 10px; display: none">
-          <div class="section-title">希望日入力</div>
+          <div class="section-title">時刻入力なし（日付指定）</div>
           <div class="helper small">
             希望する日付を選択してください。<br />
-            ※ 05:00〜29:00（終日）で登録されます
+            ※ 07:00〜29:00（終日）で登録されます
           </div>
         </div>
 
@@ -1176,7 +1180,9 @@
               const label = pref.is_ng
                 ? '休み'
                 : pref.start_time && pref.end_time
-                  ? `${formatTime(pref.start_time)}-${formatTime(pref.end_time)}`
+                  ? pref.start_time === '07:00' && pref.end_time === '29:00'
+                    ? '時刻指定なし'
+                    : `${formatTime(pref.start_time)}-${formatTime(pref.end_time)}`
                   : 'OK';
 
               selected.set(dateKey, {
@@ -1888,10 +1894,10 @@
           // アルバイト：希望日/パターン/時刻適用
           let start, end, tag;
           if (mode === 'allday') {
-            // 希望日入力：05:00〜29:00（終日）
-            start = '05:00';
+            // 時刻入力なし：07:00〜29:00（終日）
+            start = '07:00';
             end = '29:00';
-            tag = `${formatTime(start)}\n-${formatTime(end)}`;
+            tag = '時刻指定なし';
           } else if (mode === 'pattern') {
             start = currentPattern.start;
             end = currentPattern.end;

@@ -1891,7 +1891,7 @@
             // 希望日入力：05:00〜29:00（終日）
             start = '05:00';
             end = '29:00';
-            tag = '希望日';
+            tag = `${formatTime(start)}\n-${formatTime(end)}`;
           } else if (mode === 'pattern') {
             start = currentPattern.start;
             end = currentPattern.end;

@@ -221,6 +221,29 @@
         padding: 8px 10px;
         font-size: 16px;
       }
+      .input-mode-toggle {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 10px;
+      }
+      .toggle-btn {
+        flex: 1;
+        appearance: none;
+        border: 1px solid var(--gray);
+        border-radius: 12px;
+        padding: 10px 12px;
+        font-weight: 700;
+        font-size: 14px;
+        cursor: pointer;
+        background: #fff;
+        color: #333;
+        text-align: center;
+      }
+      .toggle-btn.active {
+        background: var(--green);
+        color: #fff;
+        border-color: var(--green);
+      }
       .footerbar {
         position: sticky;
         bottom: 0;
@@ -371,6 +394,27 @@
           </div>
         </div>
         -->
+
+        <!-- 入力モード切替（アルバイトのみ表示） -->
+        <div id="inputModeToggle" style="margin-top: 10px; display: none">
+          <div class="input-mode-toggle">
+            <button class="toggle-btn active" id="modeTimeBtn">
+              時刻入力あり
+            </button>
+            <button class="toggle-btn" id="modeAlldayBtn">
+              時刻入力なし<br />（日付指定）
+            </button>
+          </div>
+        </div>
+
+        <!-- 希望日入力モードのメッセージ -->
+        <div id="alldayBox" style="margin-top: 10px; display: none">
+          <div class="section-title">時刻入力なし（日付指定）</div>
+          <div class="helper small">
+            希望する日付を選択してください。<br />
+            ※ 07:00〜29:00（終日）で登録されます
+          </div>
+        </div>
 
         <!-- 時刻入力 -->
         <div id="timeBox" style="margin-top: 10px">
@@ -1136,7 +1180,9 @@
               const label = pref.is_ng
                 ? '休み'
                 : pref.start_time && pref.end_time
-                  ? `${formatTime(pref.start_time)}-${formatTime(pref.end_time)}`
+                  ? pref.start_time === '07:00' && pref.end_time === '29:00'
+                    ? '時刻指定なし'
+                    : `${formatTime(pref.start_time)}-${formatTime(pref.end_time)}`
                   : 'OK';
 
               selected.set(dateKey, {
@@ -1307,6 +1353,9 @@
         // const patternBox = document.getElementById('patternBox');
         const timeBox = document.getElementById('timeBox');
 
+        const inputModeToggle = document.getElementById('inputModeToggle');
+        const alldayBox = document.getElementById('alldayBox');
+
         if (role === 'part') {
           // アルバイトの場合
           roleInfo.style.background = 'var(--green-weak)';
@@ -1314,8 +1363,13 @@
         <strong style="color:var(--green-strong)">✅ アルバイト</strong><br>
         出勤できる日を<strong class="green">緑</strong>で選択し、時刻を指定してください
       `;
-          // 時刻入力を表示
-          if (timeBox) timeBox.style.display = 'block';
+          // 入力モードトグルを表示
+          if (inputModeToggle) inputModeToggle.style.display = 'block';
+          // 現在のモードに応じて表示切替
+          if (timeBox)
+            timeBox.style.display = mode === 'time' ? 'block' : 'none';
+          if (alldayBox)
+            alldayBox.style.display = mode === 'allday' ? 'block' : 'none';
         } else {
           // 社員の場合：3パターンで分岐
           if (!firstPlanExistsForEmp) {
@@ -1343,8 +1397,10 @@
           <span style="font-size:11px;color:#666">ここでの入力はシフト作成の参考用となります。</span>
         `;
           }
-          // 社員の場合は時刻入力を非表示
+          // 社員の場合は時刻入力・トグルを非表示
           if (timeBox) timeBox.style.display = 'none';
+          if (inputModeToggle) inputModeToggle.style.display = 'none';
+          if (alldayBox) alldayBox.style.display = 'none';
         }
       }
 
@@ -1602,6 +1658,22 @@
         }
       }
 
+      // ====== 入力モード切替（アルバイト用） ======
+      document.getElementById('modeTimeBtn').onclick = () => {
+        mode = 'time';
+        document.getElementById('modeTimeBtn').classList.add('active');
+        document.getElementById('modeAlldayBtn').classList.remove('active');
+        document.getElementById('timeBox').style.display = 'block';
+        document.getElementById('alldayBox').style.display = 'none';
+      };
+      document.getElementById('modeAlldayBtn').onclick = () => {
+        mode = 'allday';
+        document.getElementById('modeAlldayBtn').classList.add('active');
+        document.getElementById('modeTimeBtn').classList.remove('active');
+        document.getElementById('timeBox').style.display = 'none';
+        document.getElementById('alldayBox').style.display = 'block';
+      };
+
       // ====== 月移動 ======
       document.getElementById('prevMonth').onclick = async () => {
         cur.setMonth(cur.getMonth() - 1);
@@ -1819,9 +1891,14 @@
           label.style.display = 'block';
           label.textContent = '出勤不可';
         } else {
-          // アルバイト：パターン/時刻適用
+          // アルバイト：希望日/パターン/時刻適用
           let start, end, tag;
-          if (mode === 'pattern') {
+          if (mode === 'allday') {
+            // 時刻入力なし：07:00〜29:00（終日）
+            start = '07:00';
+            end = '29:00';
+            tag = '時刻指定なし';
+          } else if (mode === 'pattern') {
             start = currentPattern.start;
             end = currentPattern.end;
             tag = currentPattern.key;
